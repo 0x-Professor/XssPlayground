@@ -1,0 +1,642 @@
+{% extends "base.html" %}
+
+{% block title %}Custom Payload Testing - XSS Playground{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 text-success mb-3">
+                <i class="fas fa-flask me-3"></i>
+                Custom Payload Testing Lab
+            </h1>
+            <p class="lead text-muted">
+                Test your own XSS payloads in a safe environment with live preview and execution monitoring.
+            </p>
+        </div>
+    </div>
+
+    <!-- Security Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if security_mode == 'secure' %}
+                <div class="alert alert-success">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Secure Mode:</strong> Payloads will be sanitized using <code>html.escape()</code>. 
+                    This demonstrates how proper encoding prevents XSS execution.
+                </div>
+            {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Vulnerable Mode:</strong> Payloads will execute without sanitization. 
+                    Perfect for testing XSS techniques safely!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Payload Input -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-keyboard me-2"></i>
+                        Custom Payload Input
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('custom_payload') }}" id="payloadForm">
+                        <div class="mb-3">
+                            <label for="payload" class="form-label">Enter Your XSS Payload:</label>
+                            <textarea class="form-control font-monospace" 
+                                      id="payload" 
+                                      name="payload" 
+                                      rows="8" 
+                                      placeholder="Enter your XSS payload here...
+Example: <script>alert('Custom XSS')</script>"
+                                      required>{{ payload }}</textarea>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Enter any HTML/JavaScript payload you want to test.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-play me-2"></i>Execute Payload
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="clearPayload()">
+                                <i class="fas fa-eraser me-2"></i>Clear Input
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Payload Templates -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-magic me-2"></i>
+                        Quick Payload Templates
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('basic')">
+                                Basic Alert
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('cookie')">
+                                Cookie Stealer
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('dom')">
+                                DOM Manipulation
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('form')">
+                                Form Injection
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('event')">
+                                Event Handler
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-outline-warning btn-sm w-100" onclick="loadTemplate('advanced')">
+                                Advanced Attack
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payload Analysis -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-search me-2"></i>
+                        Payload Analysis
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Character Count:</strong>
+                                <span id="charCount">0</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Payload Type:</strong>
+                                <span id="payloadType">Unknown</span>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-6">
+                                <strong>Risk Level:</strong>
+                                <span id="riskLevel" class="badge bg-secondary">Unknown</span>
+                            </div>
+                            <div class="col-6">
+                                <strong>Tags Found:</strong>
+                                <span id="tagCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <strong>Detected Elements:</strong>
+                        <div id="detectedElements" class="mt-1">
+                            <span class="text-muted small">Enter a payload to analyze...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payload Preview/Results -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-eye me-2"></i>
+                        Live Payload Preview
+                    </h5>
+                    <span class="badge {{ 'bg-success' if security_mode == 'secure' else 'bg-danger' }}">
+                        {{ security_mode.upper() }}
+                    </span>
+                </div>
+                <div class="card-body">
+                    {% if test_result %}
+                        <div class="alert alert-info">
+                            <strong>Payload Execution Result:</strong>
+                        </div>
+                        <div class="payload-preview border rounded p-3" style="min-height: 200px; background-color: var(--bs-gray-900); color: var(--bs-gray-100);">
+                            <!-- This is where the custom XSS payload gets rendered -->
+                            {{ test_result|safe }}
+                        </div>
+                        
+                        <div class="mt-3">
+                            <h6>Execution Details:</h6>
+                            <ul class="small">
+                                <li><strong>Security Mode:</strong> {{ security_mode.title() }}</li>
+                                <li><strong>Payload Length:</strong> {{ payload|length }} characters</li>
+                                <li><strong>Sanitized:</strong> {{ 'Yes' if security_mode == 'secure' else 'No' }}</li>
+                                <li><strong>Execution Time:</strong> {{ moment().format('YYYY-MM-DD HH:mm:ss') if moment else 'Now' }}</li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-flask fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No Payload Executed Yet</h6>
+                            <p class="text-muted small">
+                                Enter a custom XSS payload above and click "Execute Payload" to see the results here.
+                            </p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Source Code View -->
+            {% if test_result %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Generated HTML Source
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="bg-dark p-3 rounded">
+                        <pre class="text-light mb-0 small"><code id="sourceCode">{{ test_result|e }}</code></pre>
+                    </div>
+                    <div class="mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="copySourceCode()">
+                            <i class="fas fa-copy me-1"></i>Copy Source
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="toggleSourceFormatting()">
+                            <i class="fas fa-indent me-1"></i>Format HTML
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Security Analysis -->
+            {% if test_result %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        Security Analysis
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if security_mode == 'secure' %}
+                        <div class="alert alert-success">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-check-circle me-2"></i>Payload Neutralized
+                            </h6>
+                            <p class="mb-0">
+                                The payload has been safely rendered as text. All HTML entities have been escaped, 
+                                preventing script execution. This demonstrates proper XSS prevention.
+                            </p>
+                        </div>
+                        <div class="small">
+                            <strong>Applied Security Measures:</strong>
+                            <ul>
+                                <li>HTML entity encoding (<code>html.escape()</code>)</li>
+                                <li>Script tags converted to safe text</li>
+                                <li>Event handlers neutralized</li>
+                                <li>JavaScript URLs blocked</li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Payload Executed
+                            </h6>
+                            <p class="mb-0">
+                                The payload has been executed without sanitization. In a real application, 
+                                this would be a critical security vulnerability allowing attackers to steal data or perform malicious actions.
+                            </p>
+                        </div>
+                        <div class="small">
+                            <strong>Potential Attack Vectors:</strong>
+                            <ul>
+                                <li>Session hijacking through cookie theft</li>
+                                <li>Credential harvesting via fake forms</li>
+                                <li>Malware distribution and drive-by downloads</li>
+                                <li>Website defacement and content manipulation</li>
+                            </ul>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Educational Information -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Custom XSS Testing Best Practices
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-success">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                Testing Strategies:
+                            </h6>
+                            <ul class="small">
+                                <li>Start with basic payloads and increase complexity</li>
+                                <li>Test different HTML contexts (attributes, text nodes)</li>
+                                <li>Try various encoding bypass techniques</li>
+                                <li>Test both client-side and server-side validation</li>
+                                <li>Combine multiple attack vectors</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-warning">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                Common Bypass Techniques:
+                            </h6>
+                            <ul class="small">
+                                <li>Character encoding (URL, Unicode, HTML entities)</li>
+                                <li>Case variation and mixed case</li>
+                                <li>JavaScript comments and whitespace</li>
+                                <li>Alternative event handlers</li>
+                                <li>Protocol manipulation (data:, javascript:)</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-danger">
+                                <i class="fas fa-ban me-2"></i>
+                                Ethical Guidelines:
+                            </h6>
+                            <ul class="small">
+                                <li>Only test on systems you own or have permission</li>
+                                <li>Never use techniques for malicious purposes</li>
+                                <li>Report vulnerabilities responsibly</li>
+                                <li>Respect privacy and data protection laws</li>
+                                <li>Use this knowledge to improve security</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Testing Tools -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-tools me-2"></i>
+                        Advanced Testing Tools
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-info w-100 mb-2" onclick="performContextAnalysis()">
+                                <i class="fas fa-search me-2"></i>Context Analysis
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-warning w-100 mb-2" onclick="testFilterBypass()">
+                                <i class="fas fa-filter me-2"></i>Filter Bypass Test
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-danger w-100 mb-2" onclick="generateFuzzPayload()">
+                                <i class="fas fa-random me-2"></i>Fuzz Generator
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-outline-success w-100 mb-2" onclick="exportTestResults()">
+                                <i class="fas fa-download me-2"></i>Export Results
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Payload templates
+const payloadTemplates = {
+    basic: '<script>alert("Custom XSS Test")</script>',
+    cookie: '<script>alert("Cookie: " + document.cookie); fetch("/log", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"cookie_theft", payload:"document.cookie", cookies:document.cookie, url:window.location.href})})</script>',
+    dom: '<script>document.body.style.backgroundColor="red"; document.body.innerHTML="<h1>XSS DOM Manipulation Test</h1>" + document.body.innerHTML</script>',
+    form: '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;color:black;padding:20px;border:3px solid red;z-index:9999;"><h3>Security Alert: Login Required</h3><form><input type="text" placeholder="Username" style="margin:5px;"><br><input type="password" placeholder="Password" style="margin:5px;"><br><button type="button" onclick="alert(\'Credentials intercepted!\'); this.parentElement.parentElement.remove();">Login</button></form></div>',
+    event: '<img src="nonexistent.jpg" onerror="alert(\'Event handler XSS executed!\')" style="display:none"><div onmouseover="alert(\'Mouseover event triggered!\')" style="background:yellow;padding:10px;cursor:pointer;">Hover over this text</div>',
+    advanced: '<script>var xhr=new XMLHttpRequest();xhr.open("GET","/logs",true);xhr.onreadystatechange=function(){if(xhr.readyState==4){alert("Advanced XSS: Attempted to access " + xhr.responseURL);}};xhr.send();</script>'
+};
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    const payloadTextarea = document.getElementById('payload');
+    
+    // Set up real-time payload analysis
+    payloadTextarea.addEventListener('input', analyzePayload);
+    
+    // Initial analysis if payload exists
+    if (payloadTextarea.value) {
+        analyzePayload();
+    }
+    
+    // Log the custom payload test
+    {% if test_result %}
+    logXSSPayload({
+        type: 'custom_test',
+        payload: '{{ payload|replace("'", "\\'") }}',
+        url: window.location.href,
+        location: 'Custom Payload Tester',
+        security_mode: '{{ security_mode }}'
+    });
+    {% endif %}
+});
+
+// Load payload template
+function loadTemplate(templateName) {
+    if (payloadTemplates[templateName]) {
+        const payloadTextarea = document.getElementById('payload');
+        payloadTextarea.value = payloadTemplates[templateName];
+        analyzePayload();
+        
+        // Scroll to textarea
+        payloadTextarea.scrollIntoView({ behavior: 'smooth' });
+        payloadTextarea.focus();
+    }
+}
+
+// Clear payload input
+function clearPayload() {
+    document.getElementById('payload').value = '';
+    analyzePayload();
+}
+
+// Analyze payload in real-time
+function analyzePayload() {
+    const payload = document.getElementById('payload').value;
+    const charCount = payload.length;
+    
+    // Update character count
+    document.getElementById('charCount').textContent = charCount;
+    
+    // Detect payload type
+    let payloadType = 'Text';
+    let riskLevel = 'Low';
+    let riskClass = 'bg-success';
+    
+    if (payload.includes('<script>')) {
+        payloadType = 'Script Injection';
+        riskLevel = 'High';
+        riskClass = 'bg-danger';
+    } else if (payload.includes('onerror') || payload.includes('onload') || payload.includes('onmouseover')) {
+        payloadType = 'Event Handler';
+        riskLevel = 'High';
+        riskClass = 'bg-danger';
+    } else if (payload.includes('javascript:')) {
+        payloadType = 'JavaScript Protocol';
+        riskLevel = 'Medium';
+        riskClass = 'bg-warning';
+    } else if (payload.includes('<') && payload.includes('>')) {
+        payloadType = 'HTML Injection';
+        riskLevel = 'Medium';
+        riskClass = 'bg-warning';
+    }
+    
+    document.getElementById('payloadType').textContent = payloadType;
+    
+    const riskElement = document.getElementById('riskLevel');
+    riskElement.textContent = riskLevel;
+    riskElement.className = `badge ${riskClass}`;
+    
+    // Count HTML tags
+    const tagMatches = payload.match(/<[^>]+>/g);
+    const tagCount = tagMatches ? tagMatches.length : 0;
+    document.getElementById('tagCount').textContent = tagCount;
+    
+    // Detect elements
+    const elements = [];
+    if (payload.includes('<script>')) elements.push('<span class="badge bg-danger me-1">&lt;script&gt;</span>');
+    if (payload.includes('<img')) elements.push('<span class="badge bg-warning me-1">&lt;img&gt;</span>');
+    if (payload.includes('<iframe')) elements.push('<span class="badge bg-warning me-1">&lt;iframe&gt;</span>');
+    if (payload.includes('<svg')) elements.push('<span class="badge bg-info me-1">&lt;svg&gt;</span>');
+    if (payload.includes('<div')) elements.push('<span class="badge bg-secondary me-1">&lt;div&gt;</span>');
+    if (payload.includes('alert(')) elements.push('<span class="badge bg-primary me-1">alert()</span>');
+    if (payload.includes('document.cookie')) elements.push('<span class="badge bg-danger me-1">document.cookie</span>');
+    if (payload.includes('fetch(')) elements.push('<span class="badge bg-warning me-1">fetch()</span>');
+    
+    const detectedElements = document.getElementById('detectedElements');
+    if (elements.length > 0) {
+        detectedElements.innerHTML = elements.join('');
+    } else {
+        detectedElements.innerHTML = '<span class="text-muted small">No suspicious elements detected</span>';
+    }
+}
+
+// Copy source code
+function copySourceCode() {
+    const sourceCode = document.getElementById('sourceCode').textContent;
+    navigator.clipboard.writeText(sourceCode).then(function() {
+        showToast('Source code copied to clipboard!', 'success');
+    });
+}
+
+// Toggle source formatting
+function toggleSourceFormatting() {
+    const sourceElement = document.getElementById('sourceCode');
+    const currentText = sourceElement.textContent;
+    
+    // Simple HTML formatting (basic indentation)
+    if (currentText.includes('\n')) {
+        // Already formatted, compress
+        sourceElement.textContent = currentText.replace(/\n\s*/g, '');
+    } else {
+        // Format with basic indentation
+        const formatted = currentText
+            .replace(/></g, '>\n<')
+            .replace(/(<[^>]+>)/g, '    $1');
+        sourceElement.textContent = formatted;
+    }
+}
+
+// Advanced testing functions
+function performContextAnalysis() {
+    const payload = document.getElementById('payload').value;
+    if (!payload) {
+        alert('Please enter a payload first.');
+        return;
+    }
+    
+    const analysis = {
+        hasScriptTags: payload.includes('<script>'),
+        hasEventHandlers: /on\w+\s*=/.test(payload),
+        hasJavaScriptProtocol: payload.includes('javascript:'),
+        hasDataProtocol: payload.includes('data:'),
+        hasHTMLEntities: /&\w+;/.test(payload),
+        hasUnicodeChars: /\\u[0-9a-fA-F]{4}/.test(payload)
+    };
+    
+    let contextReport = 'Context Analysis Results:\n\n';
+    contextReport += `Script Tags: ${analysis.hasScriptTags ? 'Found' : 'Not found'}\n`;
+    contextReport += `Event Handlers: ${analysis.hasEventHandlers ? 'Found' : 'Not found'}\n`;
+    contextReport += `JavaScript Protocol: ${analysis.hasJavaScriptProtocol ? 'Found' : 'Not found'}\n`;
+    contextReport += `Data Protocol: ${analysis.hasDataProtocol ? 'Found' : 'Not found'}\n`;
+    contextReport += `HTML Entities: ${analysis.hasHTMLEntities ? 'Found' : 'Not found'}\n`;
+    contextReport += `Unicode Characters: ${analysis.hasUnicodeChars ? 'Found' : 'Not found'}\n`;
+    
+    alert(contextReport);
+}
+
+function testFilterBypass() {
+    const payload = document.getElementById('payload').value;
+    if (!payload) {
+        alert('Please enter a payload first.');
+        return;
+    }
+    
+    const bypasses = [
+        payload.replace(/script/gi, 'scr\u0069pt'),
+        payload.replace(/</g, '&lt;').replace(/>/g, '&gt;'),
+        payload.replace(/ /g, '/**/'),
+        payload.toUpperCase(),
+        payload.replace(/"/g, "'").replace(/'/g, '`')
+    ];
+    
+    let bypassReport = 'Filter Bypass Variations:\n\n';
+    bypasses.forEach((bypass, index) => {
+        bypassReport += `${index + 1}. ${bypass}\n\n`;
+    });
+    
+    alert(bypassReport);
+}
+
+function generateFuzzPayload() {
+    const fuzzChars = ['<', '>', '"', "'", '&', ';', '(', ')', '{', '}', '/', '\\'];
+    const fuzzPayload = '<script>alert(' + fuzzChars[Math.floor(Math.random() * fuzzChars.length)] + 
+                       'fuzz' + Math.floor(Math.random() * 1000) + fuzzChars[Math.floor(Math.random() * fuzzChars.length)] + 
+                       ')</script>';
+    
+    document.getElementById('payload').value = fuzzPayload;
+    analyzePayload();
+    showToast('Fuzz payload generated!', 'success');
+}
+
+function exportTestResults() {
+    const payload = document.getElementById('payload').value;
+    const testResult = '{{ test_result|replace("'", "\\'") }}';
+    const securityMode = '{{ security_mode }}';
+    
+    const exportData = {
+        timestamp: new Date().toISOString(),
+        payload: payload,
+        testResult: testResult,
+        securityMode: securityMode,
+        payloadAnalysis: {
+            length: payload.length,
+            type: document.getElementById('payloadType').textContent,
+            riskLevel: document.getElementById('riskLevel').textContent
+        }
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `xss-test-results-${Date.now()}.json`;
+    link.click();
+    
+    showToast('Test results exported!', 'success');
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast position-fixed top-0 end-0 m-3`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'info-circle text-info'} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Success' : 'Info'}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+        }
+    });
+}
+</script>
+{% endblock %}

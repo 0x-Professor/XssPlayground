@@ -1,0 +1,490 @@
+/* Custom CSS for XSS Playground - Educational Security Lab */
+
+/* Enhanced Bootstrap Dark Theme Customizations */
+:root {
+    --xss-warning: #ffc107;
+    --xss-danger: #dc3545;
+    --xss-success: #198754;
+    --xss-info: #0dcaf0;
+    --xss-primary: #0d6efd;
+    --xss-secondary: #6c757d;
+    --xss-dark: #212529;
+    --xss-light: #f8f9fa;
+    --payload-bg: #1a1a1a;
+    --payload-border: #404040;
+}
+
+/* Body and general layout */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+    line-height: 1.6;
+}
+
+/* Navigation enhancements */
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--xss-warning) !important;
+    transform: translateY(-1px);
+}
+
+/* Security mode toggle styling */
+.security-toggle {
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+
+.security-mode-indicator {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+/* Enhanced card styling */
+.card {
+    border: none;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    background-color: var(--bs-gray-900);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+}
+
+/* Payload display styling */
+.payload-preview {
+    background-color: var(--payload-bg);
+    border: 1px solid var(--payload-border);
+    border-radius: 8px;
+    font-family: 'Courier New', Monaco, monospace;
+    font-size: 0.9em;
+    min-height: 100px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.payload-item {
+    background-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.3s ease;
+}
+
+.payload-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--xss-warning) !important;
+}
+
+.payload-code {
+    background-color: var(--payload-bg);
+    border-radius: 4px;
+    padding: 0.5rem;
+    border-left: 3px solid var(--xss-warning);
+}
+
+/* Code syntax highlighting simulation */
+.payload-code code {
+    color: #e6db74; /* String color */
+}
+
+.payload-code code:has([contains('<')]) {
+    color: #f92672; /* Tag color */
+}
+
+/* Button enhancements */
+.btn {
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.btn-warning {
+    background-color: var(--xss-warning);
+    border-color: var(--xss-warning);
+    color: var(--bs-dark);
+}
+
+.btn-danger {
+    background-color: var(--xss-danger);
+    border-color: var(--xss-danger);
+}
+
+/* Alert styling */
+.alert {
+    border: none;
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+
+.alert-success {
+    border-left-color: var(--xss-success);
+    background-color: rgba(25, 135, 84, 0.15);
+}
+
+.alert-danger {
+    border-left-color: var(--xss-danger);
+    background-color: rgba(220, 53, 69, 0.15);
+}
+
+.alert-warning {
+    border-left-color: var(--xss-warning);
+    background-color: rgba(255, 193, 7, 0.15);
+    color: var(--bs-light);
+}
+
+.alert-info {
+    border-left-color: var(--xss-info);
+    background-color: rgba(13, 202, 240, 0.15);
+}
+
+/* Form styling */
+.form-control, .form-select {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--bs-light);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--xss-warning);
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    color: var(--bs-light);
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Table styling */
+.table-dark {
+    --bs-table-bg: var(--bs-gray-900);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Badge styling */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+    border-radius: 4px;
+}
+
+/* Modal enhancements */
+.modal-content {
+    background-color: var(--bs-gray-900);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Toast styling */
+.toast {
+    background-color: var(--bs-gray-800);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--bs-light);
+}
+
+.toast-header {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--bs-light);
+}
+
+/* Accordion styling */
+.accordion-item {
+    background-color: var(--bs-gray-900);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.accordion-button {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--bs-light);
+    border: none;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--xss-warning);
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+/* Security indicators */
+.security-indicator {
+    position: relative;
+    overflow: hidden;
+}
+
+.security-indicator::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s;
+}
+
+.security-indicator:hover::before {
+    left: 100%;
+}
+
+/* Payload execution animation */
+.payload-executing {
+    animation: executePayload 1s ease-in-out;
+}
+
+@keyframes executePayload {
+    0% { 
+        background-color: transparent; 
+        transform: scale(1);
+    }
+    50% { 
+        background-color: rgba(255, 193, 7, 0.3); 
+        transform: scale(1.02);
+    }
+    100% { 
+        background-color: transparent; 
+        transform: scale(1);
+    }
+}
+
+/* Risk level indicators */
+.risk-low {
+    color: var(--xss-success);
+}
+
+.risk-medium {
+    color: var(--xss-warning);
+}
+
+.risk-high {
+    color: var(--xss-danger);
+}
+
+/* Code block styling */
+pre {
+    background-color: var(--payload-bg);
+    border: 1px solid var(--payload-border);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+code {
+    font-family: 'Courier New', Monaco, 'Lucida Console', monospace;
+    font-size: 0.875em;
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--xss-warning);
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design enhancements */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .payload-code {
+        font-size: 0.8em;
+    }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus indicators */
+*:focus {
+    outline: 2px solid var(--xss-warning);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid var(--bs-light);
+    }
+    
+    .payload-item {
+        border: 2px solid var(--xss-warning) !important;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar, .card-footer, .btn {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000;
+        break-inside: avoid;
+    }
+    
+    .payload-code {
+        background-color: #f8f9fa;
+        color: #000;
+    }
+}
+
+/* Custom scrollbar for webkit browsers */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bs-gray-800);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bs-gray-600);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--xss-warning);
+}
+
+/* Footer styling */
+footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bs-gray-900);
+}
+
+/* Logo and branding */
+.navbar-brand i {
+    animation: shield-pulse 3s ease-in-out infinite;
+}
+
+@keyframes shield-pulse {
+    0%, 100% { 
+        color: var(--xss-warning); 
+        text-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+    }
+    50% { 
+        color: var(--xss-danger); 
+        text-shadow: 0 0 5px rgba(220, 53, 69, 0.3);
+    }
+}
+
+/* Educational emphasis */
+.educational-highlight {
+    position: relative;
+    padding-left: 20px;
+}
+
+.educational-highlight::before {
+    content: '💡';
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 1.2em;
+}
+
+/* Security level indicators */
+.security-level-secure {
+    background: linear-gradient(45deg, var(--xss-success), rgba(25, 135, 84, 0.7));
+    background-size: 400% 400%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+.security-level-vulnerable {
+    background: linear-gradient(45deg, var(--xss-danger), rgba(220, 53, 69, 0.7));
+    background-size: 400% 400%;
+    animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}

