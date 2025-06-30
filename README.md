@@ -29,7 +29,7 @@
 
 ---
 
-## 🏗️ Getting Started
+## 🏁 Getting Started
 
 ### 1. Clone the repository
 
@@ -41,37 +41,51 @@ cd XssPlayground
 ### 2. Install dependencies
 
 ```bash
-# For Node.js projects
-npm install
-
 # For Python projects
-# pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
-### 3. Run the playground
+### 3. Run the Playground
 
 ```bash
-# Node.js
-npm start
-
-# Python (if applicable)
-# python app.py
+# Run the production-ready Flask app
+python main.py
 ```
 
-Then open [http://localhost:3000](http://localhost:3000) in your browser.
+By default, the app runs on [http://localhost:5000](http://localhost:5000). Open this URL in your browser.
+
+- For Replit: You can also run directly in a Replit environment; see `replit.md` for extra instructions.
+- All challenge data is stored in Python lists in memory for demo purposes—no database setup required.
 
 ---
 
-## 📂 Project Structure
+## 🗂️ Project Structure
 
-```plaintext
-.
-├── labs/           # XSS test scenarios
-├── public/         # Static files and assets
-├── src/            # Source code (JS/TS/Python)
-├── .github/        # Workflows, issue templates, etc.
-└── README.md       
 ```
+.
+├── labs/           # XSS test scenarios (15+ advanced sandboxed labs)
+├── public/         # Static files and assets (JS, CSS, images)
+├── src/            # Source code (Python/Flask backend, JS/HTML frontend)
+│   ├── app_production.py  # Main Flask app (production)
+│   ├── app_enhanced.py    # Enhanced/experimental app (may be used for staging)
+│   ├── app.py             # Legacy/basic version
+│   ├── main.py            # Entrypoint script
+│   └── ...                # Other supporting modules
+├── templates/      # Jinja2 HTML templates for the UI, labs, dashboard, payload generator, etc.
+├── static/         # Custom JavaScript, CSS, and assets
+├── .github/        # Workflows, issue templates, demo GIF
+├── README.md       
+├── replit.md       # Replit-specific setup and documentation
+├── requirements.txt # Python dependencies
+└── ...             # Other config files (LICENSE, etc.)
+```
+
+- **labs/**: Contains all XSS challenge definitions and scenarios, each lab sandboxed for safety.
+- **src/**: Python Flask backend (main app in `app_production.py`), handles routing, session, analytics, security toggling, etc.
+- **templates/**: Jinja2 HTML templates for the dashboard, challenges, analytics, payload generator, etc.
+- **static/**: Frontend logic (payload logging, monitoring, UI enhancements).
+- **public/**: Static served files (images, fonts, etc.).
+- **.github/**: Project automation and documentation.
 
 ---
 
@@ -87,14 +101,14 @@ Then open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🌐 Live Version
 
-> You can try the playground online at:  
-> [https://your-deployed-url.com](https://your-deployed-url.com)
+> You can try the playground online soon:  
+> 
 
 ---
 
 ## 🤝 Contributing
 
-We ♥️ contributions! To get started:
+We ❤️ contributions! To get started:
 
 1. Fork the repo and create your branch:  
    ```bash
