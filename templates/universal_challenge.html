@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenge {{ challenge.id }}: {{ challenge.title }} - XSS Playground</title>
+    
+    <!-- Bootstrap CSS with Replit Dark Theme -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .challenge-header {
+            background: linear-gradient(135deg, 
+                {% if challenge.difficulty == 'Easy' %}var(--bs-success), var(--bs-info)
+                {% elif challenge.difficulty == 'Medium' %}var(--bs-warning), var(--bs-info)  
+                {% elif challenge.difficulty == 'Hard' %}var(--bs-danger), var(--bs-warning)
+                {% else %}var(--bs-purple), var(--bs-danger){% endif %});
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .lab-interface {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .output-section {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+        }
+        
+        .vulnerability-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .payload-hint {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-info);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .code-example {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .challenge-content {
+            min-height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Vulnerability Indicator -->
+    <div class="vulnerability-indicator">
+        <span class="badge {% if security_mode == 'secure' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+            <i class="fas {% if security_mode == 'secure' %}fa-shield-alt{% else %}fa-exclamation-triangle{% endif %} me-2"></i>
+            {{ security_mode.title() }} Mode
+        </span>
+    </div>
+
+    <div class="container-fluid py-4">
+        <!-- Challenge Header -->
+        <div class="challenge-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-3">
+                        <a href="/" class="text-white me-3">
+                            <i class="fas fa-arrow-left fa-2x"></i>
+                        </a>
+                        <div>
+                            <h1 class="mb-0">Challenge {{ challenge.id }}: {{ challenge.title }}</h1>
+                            <div class="mt-2">
+                                <span class="badge bg-white text-dark me-2">{{ challenge.difficulty }}</span>
+                                <span class="badge bg-warning text-dark me-2">{{ challenge.points }} points</span>
+                                <span class="badge bg-info text-dark">{{ challenge.category }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0 fs-5">{{ challenge.description }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    {% if challenge.solved %}
+                        <div class="text-center">
+                            <i class="fas fa-trophy fa-3x text-warning mb-2"></i>
+                            <div class="badge bg-success fs-6">COMPLETED</div>
+                        </div>
+                    {% else %}
+                        <div class="text-center">
+                            <i class="fas fa-target fa-3x text-white mb-2"></i>
+                            {% if challenge.attempts > 0 %}
+                                <div class="text-white-50">{{ challenge.attempts }} attempts</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Objective and Hint -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bullseye me-2"></i>Objective
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">{{ challenge.objective }}</p>
+                    </div>
+                </div>
+            </div>
+            {% if challenge.show_hint %}
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Hint
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-0">{{ challenge.hint }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Lab Interface -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="lab-interface">
+                    <h3 class="text-white mb-4">
+                        <i class="fas fa-flask me-2"></i>
+                        Lab Interface
+                    </h3>
+                    
+                    <!-- Dynamic Lab Content Based on Challenge Type -->
+                    {% if challenge.vulnerability == 'search_reflection' %}
+                        <!-- Reflected XSS Lab -->
+                        <form id="labForm" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label text-white">Search Query:</label>
+                                <input type="text" 
+                                       id="labInput" 
+                                       class="form-control form-control-lg" 
+                                       placeholder="Enter your search term..."
+                                       value="{{ request.args.get('q', '') }}">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </form>
+                        
+                    {% elif challenge.vulnerability == 'attribute_injection' %}
+                        <!-- Attribute Context Lab -->
+                        <form id="labForm" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label text-white">Display Name:</label>
+                                <input type="text" 
+                                       id="labInput" 
+                                       class="form-control form-control-lg" 
+                                       placeholder="Enter your display name..."
+                                       value="{{ request.args.get('name', 'User123') }}">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save me-2"></i>Update Profile
+                            </button>
+                        </form>
+                        
+                    {% elif challenge.vulnerability == 'stored_comment' %}
+                        <!-- Stored XSS Lab -->
+                        <form id="labForm" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label text-white">Your Name:</label>
+                                <input type="text" 
+                                       id="authorInput" 
+                                       class="form-control" 
+                                       placeholder="Enter your name"
+                                       value="Anonymous">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-white">Comment:</label>
+                                <textarea id="labInput" 
+                                        class="form-control" 
+                                        rows="4" 
+                                        placeholder="Share your thoughts..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Post Comment
+                            </button>
+                        </form>
+                        
+                    {% else %}
+                        <!-- Generic Lab Interface -->
+                        <form id="labForm" class="mb-4">
+                            <div class="mb-3">
+                                <label class="form-label text-white">Input:</label>
+                                <textarea id="labInput" 
+                                        class="form-control" 
+                                        rows="4" 
+                                        placeholder="Enter your payload..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-play me-2"></i>Execute
+                            </button>
+                        </form>
+                    {% endif %}
+
+                    <!-- Payload Examples -->
+                    <div class="payload-hint">
+                        <h6 class="text-info mb-2">
+                            <i class="fas fa-code me-2"></i>Example Payloads:
+                        </h6>
+                        <div id="payloadExamples">
+                            {% if challenge.context == 'html_content' %}
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;')">
+                                    Script Tag
+                                </button>
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&lt;img src=x onerror=alert(&quot;XSS&quot;)&gt;')">
+                                    Image onerror
+                                </button>
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&lt;svg onload=alert(&quot;XSS&quot;)&gt;')">
+                                    SVG onload
+                                </button>
+                            {% elif challenge.context == 'html_attribute' %}
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;')">
+                                    Break Attribute
+                                </button>
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&quot; onmouseover=&quot;alert(1)&quot; &quot;')">
+                                    Event Handler
+                                </button>
+                            {% else %}
+                                <button class="btn btn-outline-info btn-sm me-2 mb-2" onclick="loadPayload('&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;')">
+                                    Basic XSS
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Lab to Playground Link -->
+                    <div class="mt-4">
+                        <a href="{{ challenge.lab_url }}{{ '?q=' + request.args.get('q', '') if request.args.get('q') else '' }}" 
+                           class="btn btn-success btn-lg w-100" target="_blank">
+                            <i class="fas fa-external-link-alt me-2"></i>
+                            Open in Sandboxed Lab
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output/Results Section -->
+            <div class="col-lg-6">
+                <div class="output-section">
+                    <h3 class="mb-4">
+                        <i class="fas fa-eye me-2"></i>
+                        Lab Output
+                    </h3>
+                    
+                    <div id="labOutput" class="challenge-content">
+                        {% if challenge.vulnerability == 'search_reflection' %}
+                            {% set search_query = request.args.get('q', '') %}
+                            {% if search_query %}
+                                <div class="alert {% if security_mode == 'secure' %}alert-success{% else %}alert-danger{% endif %}">
+                                    <h5>Search results for: 
+                                        {% if security_mode == 'secure' %}
+                                            {{ search_query|e }}
+                                        {% else %}
+                                            {{ search_query|safe }}
+                                        {% endif %}
+                                    </h5>
+                                    <hr>
+                                    <p>No results found matching your search criteria.</p>
+                                    {% if security_mode == 'secure' %}
+                                        <small class="text-success">✓ Input was safely HTML-encoded</small>
+                                    {% else %}
+                                        <small class="text-danger">⚠️ Input reflected without sanitization</small>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-search fa-3x mb-3"></i>
+                                    <p>Enter a search query to see results</p>
+                                </div>
+                            {% endif %}
+                            
+                        {% elif challenge.vulnerability == 'attribute_injection' %}
+                            <div class="card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-user-circle fa-4x text-primary mb-3"></i>
+                                    {% set user_name = request.args.get('name', 'User123') %}
+                                    {% if security_mode == 'secure' %}
+                                        <input type="text" class="form-control text-center fw-bold mb-3" value="{{ user_name|e }}" readonly>
+                                    {% else %}
+                                        <input type="text" class="form-control text-center fw-bold mb-3" value="{{ user_name|safe }}" readonly>
+                                    {% endif %}
+                                    <small class="text-muted">Display Name (reflected in value attribute)</small>
+                                </div>
+                            </div>
+                            
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-flask fa-3x mb-3"></i>
+                                <p>Submit input to see lab output</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Security Status -->
+                    <div class="mt-4">
+                        {% if security_mode == 'secure' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                <strong>Secure Mode:</strong> Input sanitization is enabled
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Vulnerable Mode:</strong> Input is processed without sanitization
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Success Detection -->
+                    <div id="successAlert" class="alert alert-success d-none">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle me-3"></i>
+                            <div>
+                                <h5 class="mb-1">Challenge Completed!</h5>
+                                <p class="mb-0">XSS payload executed successfully. Well done!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Details -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Technical Details
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Vulnerability Information</h5>
+                                <ul class="list-unstyled">
+                                    <li><strong>Type:</strong> {{ challenge.category }}</li>
+                                    <li><strong>Context:</strong> {{ challenge.context|replace('_', ' ')|title }}</li>
+                                    <li><strong>Difficulty:</strong> {{ challenge.difficulty }}</li>
+                                    <li><strong>Points:</strong> {{ challenge.points }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Security Filters</h5>
+                                {% if challenge.filters %}
+                                    <ul class="list-unstyled">
+                                        {% for filter in challenge.filters %}
+                                            <li><i class="fas fa-shield-alt text-warning me-2"></i>{{ filter|replace('_', ' ')|title }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No filters active</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        {% if challenge.csp_policy %}
+                        <div class="mt-4">
+                            <h5 class="text-primary">Content Security Policy</h5>
+                            <div class="code-example">
+                                <code>{{ challenge.csp_policy }}</code>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a href="/" class="btn btn-secondary me-3">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Back to Dashboard
+                </a>
+                <a href="/payload-generator" class="btn btn-primary me-3">
+                    <i class="fas fa-code me-2"></i>
+                    Payload Generator
+                </a>
+                {% if challenge.id > 1 %}
+                    <a href="/challenge/{{ challenge.id - 1 }}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-chevron-left me-1"></i>Previous
+                    </a>
+                {% endif %}
+                {% if challenge.id < 15 %}
+                    <a href="/challenge/{{ challenge.id + 1 }}" class="btn btn-outline-secondary">
+                        Next<i class="fas fa-chevron-right ms-1"></i>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let challengeCompleted = {{ 'true' if challenge.solved else 'false' }};
+        const challengeId = {{ challenge.id }};
+        const challengeContext = '{{ challenge.context }}';
+        const securityMode = '{{ security_mode }}';
+        
+        // Form submission handler
+        document.getElementById('labForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            executeChallenge();
+        });
+        
+        function executeChallenge() {
+            const input = document.getElementById('labInput').value;
+            const additionalInput = document.getElementById('authorInput')?.value || '';
+            
+            // Update URL with parameters for certain challenge types
+            if (challengeContext === 'search_reflection') {
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('q', input);
+                window.history.pushState({}, '', newUrl);
+                location.reload();
+            } else if (challengeContext === 'attribute_injection') {
+                const newUrl = new URL(window.location);
+                newUrl.searchParams.set('name', input);
+                window.history.pushState({}, '', newUrl);
+                location.reload();
+            } else {
+                // Handle dynamic output update for other challenges
+                updateLabOutput(input, additionalInput);
+            }
+        }
+        
+        function updateLabOutput(input, additionalInput = '') {
+            const outputDiv = document.getElementById('labOutput');
+            
+            if (challengeContext === 'stored_comment') {
+                // Add comment to display
+                const author = additionalInput || 'Anonymous';
+                const timestamp = new Date().toLocaleString();
+                
+                let commentsHtml = outputDiv.innerHTML;
+                if (commentsHtml.includes('Submit input to see lab output')) {
+                    commentsHtml = '<h5>Comments:</h5>';
+                }
+                
+                const sanitizedAuthor = securityMode === 'secure' ? escapeHtml(author) : author;
+                const sanitizedContent = securityMode === 'secure' ? escapeHtml(input) : input;
+                
+                commentsHtml += `
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="text-primary">${sanitizedAuthor}</h6>
+                                <small class="text-muted">${timestamp}</small>
+                            </div>
+                            <div class="mt-2">${sanitizedContent}</div>
+                        </div>
+                    </div>
+                `;
+                
+                outputDiv.innerHTML = commentsHtml;
+            } else {
+                // Generic output
+                const sanitizedInput = securityMode === 'secure' ? escapeHtml(input) : input;
+                outputDiv.innerHTML = `
+                    <div class="alert alert-info">
+                        <h5>Output:</h5>
+                        <div>${sanitizedInput}</div>
+                        <small class="text-muted mt-2 d-block">
+                            ${securityMode === 'secure' ? '✓ Input was sanitized' : '⚠️ Input reflected without sanitization'}
+                        </small>
+                    </div>
+                `;
+            }
+            
+            // Check for XSS execution
+            checkForXSSExecution(input);
+        }
+        
+        function loadPayload(payload) {
+            document.getElementById('labInput').value = payload.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
+        }
+        
+        function checkForXSSExecution(payload) {
+            // Check if payload contains common XSS patterns
+            const xssPatterns = [
+                /alert\s*\(\s*["']XSS["']\s*\)/i,
+                /alert\s*\(\s*1\s*\)/i,
+                /alert\s*\(\s*["'].*["']\s*\)/i
+            ];
+            
+            const hasXSSPattern = xssPatterns.some(pattern => pattern.test(payload));
+            
+            if (hasXSSPattern && securityMode === 'vulnerable' && !challengeCompleted) {
+                setTimeout(detectSuccess, 500);
+            }
+        }
+        
+        function detectSuccess() {
+            if (!challengeCompleted) {
+                challengeCompleted = true;
+                document.getElementById('successAlert').classList.remove('d-none');
+                
+                // Log the success
+                fetch('/log', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'challenge_success',
+                        challenge_id: challengeId,
+                        payload: document.getElementById('labInput').value,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                // Submit challenge completion
+                fetch(`/challenge/${challengeId}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'payload=' + encodeURIComponent(document.getElementById('labInput').value)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        setTimeout(() => {
+                            if (confirm('Challenge completed! Continue to next challenge?')) {
+                                if (challengeId < 15) {
+                                    window.location.href = `/challenge/${challengeId + 1}`;
+                                } else {
+                                    window.location.href = '/';
+                                }
+                            }
+                        }, 2000);
+                    }
+                });
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Override alert function to detect XSS execution
+        const originalAlert = window.alert;
+        window.alert = function(message) {
+            if (!challengeCompleted && securityMode === 'vulnerable') {
+                detectSuccess();
+            }
+            return originalAlert.call(this, message);
+        };
+    </script>
+</body>
+</html>

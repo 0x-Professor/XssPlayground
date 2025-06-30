@@ -475,7 +475,7 @@ def dashboard():
 
 @app.route('/challenge/<int:challenge_id>')
 def challenge(challenge_id):
-    """Individual challenge page with sandboxed lab"""
+    """Individual challenge page with universal template"""
     if challenge_id not in CHALLENGE_LABS:
         abort(404)
     
@@ -488,7 +488,8 @@ def challenge(challenge_id):
     challenge['attempts'] = progress.get(str(challenge_id), {}).get('attempts', 0)
     challenge['show_hint'] = challenge['attempts'] >= 3 or challenge['solved']
     
-    return render_template(f'challenges/challenge_{challenge_id}.html',
+    # Use universal challenge template for all challenges
+    return render_template('universal_challenge.html',
                          challenge=challenge,
                          security_mode=session.get('security_mode', 'vulnerable'))
 
