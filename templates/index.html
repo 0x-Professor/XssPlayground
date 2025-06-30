@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h1 class="display-4 text-warning mb-3">
+                <i class="fas fa-shield-alt me-3"></i>
+                XSS Security Playground
+            </h1>
+            <p class="lead text-muted">
+                An educational platform for learning Cross-Site Scripting (XSS) vulnerabilities 
+                and their mitigation techniques in a safe, controlled environment.
+            </p>
+        </div>
+    </div>
+
+    <!-- Security Status Alert -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if security_mode == 'secure' %}
+                <div class="alert alert-success d-flex align-items-center" role="alert">
+                    <i class="fas fa-shield-alt fa-2x me-3"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Secure Mode Enabled</h5>
+                        <p class="mb-0">Input sanitization is active. XSS payloads will be escaped and rendered harmless.</p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                    <div>
+                        <h5 class="alert-heading mb-1">Vulnerable Mode Active</h5>
+                        <p class="mb-0">Input sanitization is disabled. XSS payloads will execute. Use for educational purposes only!</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Learning Modules -->
+    <div class="row g-4">
+        <!-- Reflected XSS -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-search me-2"></i>
+                        Reflected XSS
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Learn how user input reflected in web pages can be exploited 
+                        when proper input validation and output encoding are missing.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>URL parameter injection</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Search form vulnerabilities</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Real-time payload testing</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('reflected_xss') }}" class="btn btn-warning w-100">
+                        <i class="fas fa-play me-2"></i>Start Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stored XSS -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Stored XSS
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Explore how malicious scripts stored in databases can affect 
+                        all users who view the compromised content.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Comment system exploitation</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Persistent payload storage</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Multi-user impact simulation</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('stored_xss') }}" class="btn btn-danger w-100">
+                        <i class="fas fa-play me-2"></i>Start Demo
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payload Logs -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Payload Logs
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Monitor and analyze XSS payload executions with detailed 
+                        logging including timestamps, IPs, and user agents.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Real-time payload capture</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Detailed execution logs</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Attack pattern analysis</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('view_logs') }}" class="btn btn-info w-100">
+                        <i class="fas fa-eye me-2"></i>View Logs
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payload Generator -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-secondary">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-code me-2"></i>
+                        Payload Generator
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Generate pre-built XSS payloads for different scenarios 
+                        and learn various attack vectors and techniques.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Categorized payload library</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Copy-paste ready scripts</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Technique explanations</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('payload_generator') }}" class="btn btn-secondary w-100">
+                        <i class="fas fa-magic me-2"></i>Generate Payloads
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Testing -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-flask me-2"></i>
+                        Custom Testing
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Test your own XSS payloads in a safe environment with 
+                        live preview and execution monitoring.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-check text-success me-2"></i>Custom payload input</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Live execution preview</li>
+                        <li><i class="fas fa-check text-success me-2"></i>Safety controls</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('custom_payload') }}" class="btn btn-success w-100">
+                        <i class="fas fa-vial me-2"></i>Test Custom
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Resources -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-light">
+                <div class="card-header bg-light text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        Security Concepts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        Understanding the fundamental concepts and mitigation 
+                        strategies for XSS vulnerabilities.
+                    </p>
+                    <ul class="list-unstyled small">
+                        <li><i class="fas fa-book text-primary me-2"></i>Input validation techniques</li>
+                        <li><i class="fas fa-book text-primary me-2"></i>Output encoding methods</li>
+                        <li><i class="fas fa-book text-primary me-2"></i>Content Security Policy</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-light w-100" data-bs-toggle="modal" data-bs-target="#conceptsModal">
+                        <i class="fas fa-lightbulb me-2"></i>Learn Concepts
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Laboratory Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h3 class="text-warning mb-1" id="reflected-count">0</h3>
+                                <small class="text-muted">Reflected Tests</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h3 class="text-danger mb-1" id="stored-count">{{ stored_comments|length }}</h3>
+                                <small class="text-muted">Stored Comments</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border-end">
+                                <h3 class="text-info mb-1" id="log-count">{{ logs|length }}</h3>
+                                <small class="text-muted">Logged Payloads</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 class="text-success mb-1" id="custom-count">0</h3>
+                            <small class="text-muted">Custom Tests</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Concepts Modal -->
+<div class="modal fade" id="conceptsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-shield-alt text-primary me-2"></i>
+                    XSS Security Concepts
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="accordion" id="conceptsAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#concept1">
+                                What is Cross-Site Scripting (XSS)?
+                            </button>
+                        </h2>
+                        <div id="concept1" class="accordion-collapse collapse show" data-bs-parent="#conceptsAccordion">
+                            <div class="accordion-body">
+                                <p>XSS is a security vulnerability that allows attackers to inject malicious scripts into web pages viewed by other users. These scripts can steal sensitive information, manipulate page content, or perform actions on behalf of the user.</p>
+                                <p><strong>Types of XSS:</strong></p>
+                                <ul>
+                                    <li><strong>Reflected XSS:</strong> Malicious script is reflected off the web server</li>
+                                    <li><strong>Stored XSS:</strong> Malicious script is stored on the server and served to users</li>
+                                    <li><strong>DOM XSS:</strong> Vulnerability exists in client-side code rather than server-side</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#concept2">
+                                Prevention Techniques
+                            </button>
+                        </h2>
+                        <div id="concept2" class="accordion-collapse collapse" data-bs-parent="#conceptsAccordion">
+                            <div class="accordion-body">
+                                <p><strong>Input Validation:</strong></p>
+                                <ul>
+                                    <li>Validate all user input on both client and server sides</li>
+                                    <li>Use whitelisting rather than blacklisting</li>
+                                    <li>Implement proper data type validation</li>
+                                </ul>
+                                <p><strong>Output Encoding:</strong></p>
+                                <ul>
+                                    <li>HTML encode output: <code>&lt;</code> becomes <code>&amp;lt;</code></li>
+                                    <li>JavaScript encoding for dynamic content</li>
+                                    <li>URL encoding for URL parameters</li>
+                                </ul>
+                                <p><strong>Content Security Policy (CSP):</strong></p>
+                                <ul>
+                                    <li>Restrict sources of executable scripts</li>
+                                    <li>Prevent inline script execution</li>
+                                    <li>Control resource loading</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Update statistics on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // These would be updated via AJAX in a real application
+    // For now, we'll use the values passed from the server
+    
+    // Add some interactivity to the stats
+    const statElements = document.querySelectorAll('[id$="-count"]');
+    statElements.forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', function() {
+            this.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 200);
+        });
+    });
+});
+</script>
+{% endblock %}

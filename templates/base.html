@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}XSS Playground - Educational Security Lab{% endblock %}</title>
+    
+    <!-- Bootstrap CSS with Replit dark theme -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-alt text-warning me-2"></i>
+                XSS Playground
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reflected_xss') }}">
+                            <i class="fas fa-search me-1"></i>Reflected XSS
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('stored_xss') }}">
+                            <i class="fas fa-comments me-1"></i>Stored XSS
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('view_logs') }}">
+                            <i class="fas fa-list me-1"></i>Payload Logs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('payload_generator') }}">
+                            <i class="fas fa-code me-1"></i>Generator
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('custom_payload') }}">
+                            <i class="fas fa-flask me-1"></i>Custom Test
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Security Mode Toggle -->
+                <div class="d-flex align-items-center">
+                    <form method="POST" action="{{ url_for('toggle_security') }}" class="d-flex align-items-center">
+                        <label class="form-label me-2 mb-0 small">Security Mode:</label>
+                        <select name="mode" class="form-select form-select-sm me-2" onchange="this.form.submit()" style="width: auto;">
+                            <option value="insecure" {% if security_mode == 'insecure' %}selected{% endif %}>
+                                🔓 Insecure (Vulnerable)
+                            </option>
+                            <option value="secure" {% if security_mode == 'secure' %}selected{% endif %}>
+                                🔒 Secure (Protected)
+                            </option>
+                        </select>
+                    </form>
+                    
+                    <!-- Security Status Badge -->
+                    {% if security_mode == 'secure' %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-shield-alt me-1"></i>SECURE
+                        </span>
+                    {% else %}
+                        <span class="badge bg-danger">
+                            <i class="fas fa-exclamation-triangle me-1"></i>VULNERABLE
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="container mt-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <h6 class="text-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Educational Security Laboratory
+                    </h6>
+                    <p class="small mb-0">
+                        This XSS playground is designed for educational purposes only. 
+                        It demonstrates common web security vulnerabilities in a controlled environment.
+                        <strong>Do not use these techniques on systems you don't own.</strong>
+                    </p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="btn-group" role="group">
+                        <form method="POST" action="{{ url_for('clear_data') }}" style="display: inline;">
+                            <input type="hidden" name="type" value="all">
+                            <button type="submit" class="btn btn-outline-warning btn-sm" 
+                                    onclick="return confirm('Clear all data?')">
+                                <i class="fas fa-trash me-1"></i>Clear All Data
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='xss-playground.js') }}"></script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
