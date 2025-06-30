@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Playground - Production Security Laboratory</title>
+    
+    <!-- Bootstrap CSS with Replit Dark Theme -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .challenge-card {
+            transition: all 0.3s ease;
+            border: 1px solid var(--bs-border-color);
+        }
+        
+        .challenge-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .difficulty-easy { border-left: 4px solid var(--bs-success); }
+        .difficulty-medium { border-left: 4px solid var(--bs-warning); }
+        .difficulty-hard { border-left: 4px solid var(--bs-danger); }
+        .difficulty-expert { border-left: 4px solid var(--bs-purple); }
+        
+        .stats-card {
+            background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+            border: none;
+            color: white;
+        }
+        
+        .category-header {
+            background: linear-gradient(135deg, var(--bs-dark), var(--bs-secondary));
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .security-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .lab-sandbox {
+            border: 2px dashed var(--bs-warning);
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Security Mode Badge -->
+    <div class="security-badge">
+        <span class="badge {% if security_mode == 'secure' %}bg-success{% else %}bg-danger{% endif %} fs-6">
+            <i class="fas {% if security_mode == 'secure' %}fa-shield-alt{% else %}fa-exclamation-triangle{% endif %} me-2"></i>
+            {{ security_mode.title() }} Mode
+        </span>
+    </div>
+
+    <div class="container-fluid py-4">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card glass-effect">
+                    <div class="card-body text-center py-5">
+                        <h1 class="display-4 fw-bold text-primary">
+                            <i class="fas fa-flask me-3"></i>
+                            XSS Security Laboratory
+                        </h1>
+                        <p class="lead text-muted">
+                            Production-Ready Educational Security Playground
+                        </p>
+                        <p class="text-muted">
+                            Master Cross-Site Scripting through hands-on challenges with sandboxed labs
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-trophy fa-2x mb-3"></i>
+                        <h3 class="fw-bold">{{ stats.solved_challenges }}</h3>
+                        <p class="mb-0">Challenges Solved</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-2x mb-3"></i>
+                        <h3 class="fw-bold">{{ stats.total_points }}</h3>
+                        <p class="mb-0">Points Earned</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-percentage fa-2x mb-3"></i>
+                        <h3 class="fw-bold">{{ stats.completion_rate }}%</h3>
+                        <p class="mb-0">Completion Rate</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stats-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-2x mb-3"></i>
+                        <h3 class="fw-bold">{{ stats.total_attempts }}</h3>
+                        <p class="mb-0">Total Attempts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-cogs me-2"></i>
+                                    Laboratory Controls
+                                </h5>
+                                <p class="text-muted mb-0">Manage your learning environment</p>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button class="btn btn-outline-primary me-2" onclick="toggleSecurity()">
+                                    <i class="fas fa-sync-alt me-2"></i>
+                                    Toggle Security Mode
+                                </button>
+                                <a href="/payload-generator" class="btn btn-primary me-2">
+                                    <i class="fas fa-code me-2"></i>
+                                    Payload Generator
+                                </a>
+                                <a href="/analytics" class="btn btn-info me-2">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    Analytics
+                                </a>
+                                <a href="/help" class="btn btn-secondary">
+                                    <i class="fas fa-question-circle me-2"></i>
+                                    Help
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Challenge Categories -->
+        {% for category, category_challenges in categories.items() %}
+        <div class="category-section mb-5">
+            <div class="category-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 class="text-white mb-0">
+                            <i class="fas fa-{{ 'shield-alt' if 'CSP' in category else 'bug' if 'Filter' in category else 'code' if 'DOM' in category else 'database' if 'Stored' in category else 'eye' if 'Reflected' in category else 'brain' }} me-2"></i>
+                            {{ category }}
+                        </h3>
+                        <p class="text-white-50 mb-0">{{ category_challenges|length }} challenges available</p>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="progress" style="height: 8px;">
+                            {% set solved_in_category = category_challenges|selectattr('solved')|list|length %}
+                            {% set progress_pct = (solved_in_category / category_challenges|length * 100)|round(1) %}
+                            <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%"></div>
+                        </div>
+                        <small class="text-white-50">{{ solved_in_category }}/{{ category_challenges|length }} completed</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                {% for challenge in category_challenges %}
+                <div class="col-lg-6 col-xl-4 mb-4">
+                    <div class="card challenge-card difficulty-{{ challenge.difficulty.lower() }}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">Challenge {{ challenge.id }}</h6>
+                                <small class="text-muted">{{ challenge.difficulty }} • {{ challenge.points }} points</small>
+                            </div>
+                            <div>
+                                {% if challenge.solved %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Solved
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-lock me-1"></i>Unsolved
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ challenge.title }}</h5>
+                            <p class="card-text text-muted">{{ challenge.description }}</p>
+                            
+                            {% if challenge.attempts > 0 %}
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-history me-1"></i>
+                                    {{ challenge.attempts }} attempt{{ 's' if challenge.attempts != 1 else '' }}
+                                </small>
+                            </div>
+                            {% endif %}
+
+                            <div class="lab-sandbox">
+                                <i class="fas fa-flask me-2 text-warning"></i>
+                                <small class="text-warning">
+                                    <strong>Sandboxed Lab:</strong> Safe testing environment
+                                </small>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col-8">
+                                    <a href="/challenge/{{ challenge.id }}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-play me-1"></i>
+                                        Start Challenge
+                                    </a>
+                                </div>
+                                <div class="col-4 text-end">
+                                    {% if challenge.points_earned > 0 %}
+                                        <span class="badge bg-success">+{{ challenge.points_earned }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Footer -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="text-muted">
+                            <i class="fas fa-graduation-cap me-2"></i>
+                            Educational Security Laboratory
+                        </h5>
+                        <p class="text-muted mb-0">
+                            This playground is designed for educational purposes only. 
+                            Use responsibly and only on authorized systems.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Toggle security mode
+        function toggleSecurity() {
+            fetch('/toggle-security', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Failed to toggle security mode');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred');
+            });
+        }
+
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Smooth scrolling for category navigation
+        function scrollToCategory(category) {
+            document.querySelector(`[data-category="${category}"]`).scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        // Progress animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBars = document.querySelectorAll('.progress-bar');
+            progressBars.forEach(bar => {
+                const targetWidth = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.transition = 'width 1s ease-in-out';
+                    bar.style.width = targetWidth;
+                }, 200);
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'p':
+                        e.preventDefault();
+                        window.location.href = '/payload-generator';
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        window.location.href = '/help';
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        window.location.href = '/analytics';
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

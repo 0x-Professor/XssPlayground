@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payload Generator - XSS Playground</title>
+    
+    <!-- Bootstrap CSS with Replit Dark Theme -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .generator-header {
+            background: linear-gradient(135deg, #6f42c1, #e83e8c);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .config-panel {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+        }
+        
+        .results-panel {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+        }
+        
+        .payload-item {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .payload-item:hover {
+            border-color: var(--bs-primary);
+            transform: translateY(-1px);
+        }
+        
+        .payload-code {
+            background: var(--bs-black);
+            border: 1px solid var(--bs-gray-700);
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        
+        .category-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .category-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .risk-low { border-left: 4px solid var(--bs-success); }
+        .risk-medium { border-left: 4px solid var(--bs-warning); }
+        .risk-high { border-left: 4px solid var(--bs-danger); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="generator-header">
+                    <h1 class="display-4 fw-bold">
+                        <i class="fas fa-code me-3"></i>
+                        Advanced Payload Generator
+                    </h1>
+                    <p class="lead mb-0">
+                        Generate context-aware XSS payloads for different attack scenarios
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Generator Interface -->
+        <div class="row mb-4">
+            <!-- Configuration Panel -->
+            <div class="col-lg-5">
+                <div class="config-panel">
+                    <h3 class="text-white mb-4">
+                        <i class="fas fa-cogs me-2"></i>
+                        Payload Configuration
+                    </h3>
+                    
+                    <form id="payloadForm">
+                        <!-- Injection Context -->
+                        <div class="mb-4">
+                            <label class="form-label text-white fw-bold">
+                                <i class="fas fa-bullseye me-2"></i>Injection Context
+                            </label>
+                            <select id="contextSelect" class="form-select">
+                                <option value="html_content">HTML Content</option>
+                                <option value="html_attribute">HTML Attribute</option>
+                                <option value="javascript">JavaScript Context</option>
+                                <option value="url">URL Parameter</option>
+                                <option value="css">CSS Context</option>
+                                <option value="json">JSON Data</option>
+                            </select>
+                            <div class="form-text">Choose where your payload will be injected</div>
+                        </div>
+                        
+                        <!-- Filter Bypass -->
+                        <div class="mb-4">
+                            <label class="form-label text-white fw-bold">
+                                <i class="fas fa-filter me-2"></i>Filter Bypass
+                            </label>
+                            <select id="filterSelect" class="form-select">
+                                <option value="none">No Filters</option>
+                                <option value="script_blocked">Script Tags Blocked</option>
+                                <option value="quotes_filtered">Quotes Filtered</option>
+                                <option value="events_blocked">Event Handlers Blocked</option>
+                                <option value="keywords_filtered">Keywords Filtered</option>
+                                <option value="csp_strict">Strict CSP</option>
+                            </select>
+                            <div class="form-text">Select the type of filtering to bypass</div>
+                        </div>
+                        
+                        <!-- Target Action -->
+                        <div class="mb-4">
+                            <label class="form-label text-white fw-bold">
+                                <i class="fas fa-crosshairs me-2"></i>Target Action
+                            </label>
+                            <select id="targetSelect" class="form-select">
+                                <option value="alert">Alert Box</option>
+                                <option value="console.log">Console Log</option>
+                                <option value="document.cookie">Steal Cookies</option>
+                                <option value="fetch">Send Data</option>
+                                <option value="location.href">Redirect</option>
+                                <option value="eval">Execute Code</option>
+                            </select>
+                            <div class="form-text">What should happen when payload executes</div>
+                        </div>
+                        
+                        <!-- Advanced Options -->
+                        <div class="card bg-secondary bg-opacity-25 border-secondary">
+                            <div class="card-header">
+                                <h5 class="mb-0 text-white">Advanced Options</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" id="obfuscated" class="form-check-input">
+                                    <label for="obfuscated" class="form-check-label text-white">
+                                        Obfuscated payloads
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" id="encoded" class="form-check-input">
+                                    <label for="encoded" class="form-check-label text-white">
+                                        URL/HTML encoded
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check">
+                                    <input type="checkbox" id="polyglot" class="form-check-input">
+                                    <label for="polyglot" class="form-check-label text-white">
+                                        Polyglot payloads
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg w-100 mt-4">
+                            <i class="fas fa-magic me-2"></i>Generate Payloads
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="col-lg-7">
+                <div class="results-panel">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Generated Payloads
+                        </h3>
+                        
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="copyAllPayloads()" disabled id="copyAllBtn">
+                                <i class="fas fa-copy me-1"></i>Copy All
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="clearResults()" disabled id="clearBtn">
+                                <i class="fas fa-trash me-1"></i>Clear
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="exportPayloads()" disabled id="exportBtn">
+                                <i class="fas fa-download me-1"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="payloadResults">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-rocket fa-4x mb-3"></i>
+                            <h5>Ready to Generate</h5>
+                            <p>Configure your settings and click "Generate Payloads" to see results</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payload Categories -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3 class="mb-4">
+                    <i class="fas fa-layer-group me-2"></i>
+                    Quick Categories
+                </h3>
+            </div>
+            
+            <!-- Common Payloads -->
+            <div class="col-md-4 mb-3">
+                <div class="card category-card" onclick="loadCategory('common')">
+                    <div class="card-body text-center">
+                        <i class="fas fa-star fa-3x text-warning mb-3"></i>
+                        <h5>Common Payloads</h5>
+                        <p class="text-muted">Basic XSS vectors for beginners</p>
+                        <div class="row text-center">
+                            <div class="col-6"><small>Script Tags</small></div>
+                            <div class="col-6"><small>Event Handlers</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bypass Techniques -->
+            <div class="col-md-4 mb-3">
+                <div class="card category-card" onclick="loadCategory('bypass')">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-3x text-danger mb-3"></i>
+                        <h5>Bypass Techniques</h5>
+                        <p class="text-muted">Filter evasion methods</p>
+                        <div class="row text-center">
+                            <div class="col-6"><small>Encoding</small></div>
+                            <div class="col-6"><small>Case Variation</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Payloads -->
+            <div class="col-md-4 mb-3">
+                <div class="card category-card" onclick="loadCategory('advanced')">
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain fa-3x text-info mb-3"></i>
+                        <h5>Advanced Payloads</h5>
+                        <p class="text-muted">Complex attack vectors</p>
+                        <div class="row text-center">
+                            <div class="col-6"><small>Polyglots</small></div>
+                            <div class="col-6"><small>CSP Bypass</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Educational Guide -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-graduation-cap me-2"></i>
+                            Payload Generation Guide
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Context-Aware Generation</h5>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <strong class="text-success">HTML Content:</strong> 
+                                        Direct script injection possible
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-warning">Attributes:</strong> 
+                                        Must escape quotes and close tags
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-info">JavaScript:</strong> 
+                                        String escaping and syntax awareness
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-danger">URL:</strong> 
+                                        URL encoding and protocol considerations
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h5 class="text-primary">Filter Bypass Strategies</h5>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <strong class="text-success">Script Blocking:</strong> 
+                                        Alternative tags and events
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-warning">Quote Filtering:</strong> 
+                                        Encoding and String.fromCharCode
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-info">Event Blocking:</strong> 
+                                        Alternative events and protocols
+                                    </li>
+                                    <li class="mb-2">
+                                        <strong class="text-danger">CSP:</strong> 
+                                        Whitelisted sources and nonce bypass
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="row mt-4">
+            <div class="col-12 text-center">
+                <a href="/" class="btn btn-secondary me-3">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Back to Dashboard
+                </a>
+                <a href="/analytics" class="btn btn-info me-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    View Analytics
+                </a>
+                <a href="/help" class="btn btn-outline-secondary">
+                    <i class="fas fa-question-circle me-2"></i>
+                    Help & Documentation
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let generatedPayloads = [];
+        
+        // Form submission handler
+        document.getElementById('payloadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            generatePayloads();
+        });
+        
+        async function generatePayloads() {
+            const context = document.getElementById('contextSelect').value;
+            const filter = document.getElementById('filterSelect').value;
+            const target = document.getElementById('targetSelect').value;
+            const obfuscated = document.getElementById('obfuscated').checked;
+            const encoded = document.getElementById('encoded').checked;
+            const polyglot = document.getElementById('polyglot').checked;
+            
+            // Show loading state
+            document.getElementById('payloadResults').innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Generating context-aware payloads...</p>
+                </div>
+            `;
+            
+            try {
+                const formData = new FormData();
+                formData.append('context', context);
+                formData.append('filter', filter);
+                formData.append('target', target);
+                if (obfuscated) formData.append('obfuscated', 'true');
+                if (encoded) formData.append('encoded', 'true');
+                if (polyglot) formData.append('polyglot', 'true');
+                
+                const response = await fetch('/generate-payload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                generatedPayloads = data.payloads || [];
+                
+                displayPayloads(generatedPayloads);
+                updateButtonStates(true);
+                
+            } catch (error) {
+                console.error('Error generating payloads:', error);
+                document.getElementById('payloadResults').innerHTML = `
+                    <div class="text-center text-danger py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <h5>Generation Failed</h5>
+                        <p>Error generating payloads. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function displayPayloads(payloads) {
+            const resultsDiv = document.getElementById('payloadResults');
+            
+            if (payloads.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <h5>No Payloads Generated</h5>
+                        <p>No payloads found for this configuration.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const payloadHTML = payloads.map((payload, index) => {
+                const riskLevel = getRiskLevel(payload);
+                const payloadType = getPayloadType(payload);
+                
+                return `
+                    <div class="payload-item risk-${riskLevel.toLowerCase()}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-primary">Payload ${index + 1}</span>
+                                <span class="badge bg-secondary ms-2">${payloadType}</span>
+                                <span class="badge bg-${getRiskColor(riskLevel)} ms-2">${riskLevel} Risk</span>
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" onclick="copyPayload('${escapeJs(payload)}')" title="Copy">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="btn btn-outline-success" onclick="testPayload('${escapeJs(payload)}')" title="Test">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-outline-info" onclick="analyzePayload('${escapeJs(payload)}')" title="Analyze">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="payload-code">
+                            <code class="text-success">${escapeHtml(payload)}</code>
+                        </div>
+                        
+                        <div class="mt-2 d-flex justify-content-between text-muted small">
+                            <span>Length: ${payload.length} chars</span>
+                            <span>Tags: ${(payload.match(/<[^>]+>/g) || []).length}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            resultsDiv.innerHTML = payloadHTML;
+        }
+        
+        function copyPayload(payload) {
+            navigator.clipboard.writeText(payload).then(() => {
+                showToast('Payload copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy payload', 'error');
+            });
+        }
+        
+        function testPayload(payload) {
+            // Open the basic reflected XSS lab with the payload
+            const testUrl = `/lab/reflected-basic?q=${encodeURIComponent(payload)}`;
+            window.open(testUrl, '_blank');
+        }
+        
+        function analyzePayload(payload) {
+            const analysis = {
+                length: payload.length,
+                type: getPayloadType(payload),
+                risk: getRiskLevel(payload),
+                tags: (payload.match(/<[^>]+>/g) || []).length,
+                events: (payload.match(/on\w+\s*=/gi) || []).length,
+                protocols: (payload.match(/\w+:/g) || []).filter(p => !['http:', 'https:'].includes(p)).length,
+                encoding: payload !== decodeURIComponent(payload) ? 'URL Encoded' : 'Plain Text'
+            };
+            
+            showAnalysisModal(payload, analysis);
+        }
+        
+        function copyAllPayloads() {
+            const allPayloads = generatedPayloads.join('\n\n');
+            navigator.clipboard.writeText(allPayloads).then(() => {
+                showToast(`${generatedPayloads.length} payloads copied!`, 'success');
+            });
+        }
+        
+        function clearResults() {
+            generatedPayloads = [];
+            document.getElementById('payloadResults').innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-rocket fa-4x mb-3"></i>
+                    <h5>Ready to Generate</h5>
+                    <p>Configure your settings and click "Generate Payloads" to see results</p>
+                </div>
+            `;
+            updateButtonStates(false);
+        }
+        
+        function exportPayloads() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                configuration: {
+                    context: document.getElementById('contextSelect').value,
+                    filter: document.getElementById('filterSelect').value,
+                    target: document.getElementById('targetSelect').value,
+                    obfuscated: document.getElementById('obfuscated').checked,
+                    encoded: document.getElementById('encoded').checked,
+                    polyglot: document.getElementById('polyglot').checked
+                },
+                payloads: generatedPayloads
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `xss-payloads-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Payloads exported successfully!', 'success');
+        }
+        
+        function loadCategory(category) {
+            const configurations = {
+                common: { context: 'html_content', filter: 'none', target: 'alert' },
+                bypass: { context: 'html_content', filter: 'script_blocked', target: 'alert' },
+                advanced: { context: 'html_content', filter: 'csp_strict', target: 'alert', polyglot: true }
+            };
+            
+            const config = configurations[category];
+            if (config) {
+                document.getElementById('contextSelect').value = config.context;
+                document.getElementById('filterSelect').value = config.filter;
+                document.getElementById('targetSelect').value = config.target;
+                if (config.polyglot) document.getElementById('polyglot').checked = true;
+                
+                generatePayloads();
+            }
+        }
+        
+        function updateButtonStates(enabled) {
+            ['copyAllBtn', 'clearBtn', 'exportBtn'].forEach(id => {
+                document.getElementById(id).disabled = !enabled;
+            });
+        }
+        
+        function getPayloadType(payload) {
+            if (/<script/i.test(payload)) return 'Script Tag';
+            if (/on\w+\s*=/i.test(payload)) return 'Event Handler';
+            if (/javascript:/i.test(payload)) return 'JavaScript URI';
+            if (/<svg/i.test(payload)) return 'SVG Vector';
+            if (/<img/i.test(payload)) return 'Image Tag';
+            if (/<iframe/i.test(payload)) return 'Iframe';
+            return 'Other';
+        }
+        
+        function getRiskLevel(payload) {
+            if (/<script/i.test(payload) || /eval\(/i.test(payload)) return 'High';
+            if (/on\w+\s*=/i.test(payload) || /javascript:/i.test(payload)) return 'Medium';
+            return 'Low';
+        }
+        
+        function getRiskColor(risk) {
+            switch (risk) {
+                case 'High': return 'danger';
+                case 'Medium': return 'warning';
+                default: return 'success';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function escapeJs(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n');
+        }
+        
+        function showToast(message, type) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0`;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            // Add to page
+            let toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toastContainer';
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '9999';
+                document.body.appendChild(toastContainer);
+            }
+            
+            toastContainer.appendChild(toast);
+            
+            // Show toast
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove after animation
+            toast.addEventListener('hidden.bs.toast', () => {
+                toast.remove();
+            });
+        }
+        
+        function showAnalysisModal(payload, analysis) {
+            // Create modal content
+            const modalHTML = `
+                <div class="modal fade" id="analysisModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Payload Analysis</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Payload:</label>
+                                    <div class="payload-code">${escapeHtml(payload)}</div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Basic Properties</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>Length:</strong> ${analysis.length} characters</li>
+                                            <li><strong>Type:</strong> ${analysis.type}</li>
+                                            <li><strong>Risk Level:</strong> <span class="badge bg-${getRiskColor(analysis.risk)}">${analysis.risk}</span></li>
+                                            <li><strong>Encoding:</strong> ${analysis.encoding}</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Technical Details</h6>
+                                        <ul class="list-unstyled">
+                                            <li><strong>HTML Tags:</strong> ${analysis.tags}</li>
+                                            <li><strong>Event Handlers:</strong> ${analysis.events}</li>
+                                            <li><strong>Special Protocols:</strong> ${analysis.protocols}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="copyPayload('${escapeJs(payload)}')">Copy Payload</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove existing modal
+            const existingModal = document.getElementById('analysisModal');
+            if (existingModal) existingModal.remove();
+            
+            // Add new modal
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>

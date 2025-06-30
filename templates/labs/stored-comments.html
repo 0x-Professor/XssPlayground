@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab: Stored XSS - Comment System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .lab-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .lab-header {
+            background: linear-gradient(135deg, #6f42c1, #e83e8c);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .comment-form {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .comments-section {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+        }
+        
+        .comment-item {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .vulnerability-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .payload-hint {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-info);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Vulnerability Indicator -->
+    <div class="vulnerability-indicator">
+        <span class="badge bg-danger fs-6">
+            <i class="fas fa-database me-2"></i>
+            Stored XSS Lab
+        </span>
+    </div>
+
+    <div class="lab-container">
+        <!-- Lab Header -->
+        <div class="lab-header">
+            <h1><i class="fas fa-comments me-3"></i>Blog Comments</h1>
+            <p class="mb-0">Share your thoughts on our latest blog post</p>
+        </div>
+
+        <!-- Blog Post -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="card-title">Understanding Web Security Fundamentals</h2>
+                <p class="text-muted mb-3">
+                    <i class="fas fa-calendar me-2"></i>Published on January 15, 2025
+                    <i class="fas fa-user ms-3 me-2"></i>By Security Team
+                </p>
+                <p class="card-text">
+                    Web security is a critical aspect of modern web development. Cross-Site Scripting (XSS) 
+                    remains one of the most common vulnerabilities found in web applications. In this post, 
+                    we explore the fundamentals of XSS prevention and secure coding practices.
+                </p>
+                <p class="card-text">
+                    Understanding how XSS attacks work is essential for developers to build secure applications. 
+                    The OWASP Top 10 continues to highlight XSS as a significant security concern...
+                </p>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Comment Form -->
+            <div class="col-lg-6">
+                <div class="comment-form">
+                    <h3 class="text-white mb-4">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Add Comment
+                    </h3>
+                    
+                    <form id="commentForm">
+                        <div class="mb-3">
+                            <label for="authorName" class="form-label text-white">Your Name</label>
+                            <input type="text" 
+                                   id="authorName" 
+                                   class="form-control" 
+                                   placeholder="Enter your name"
+                                   value="Anonymous">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="commentText" class="form-label text-white">Comment</label>
+                            <textarea id="commentText" 
+                                    class="form-control" 
+                                    rows="4" 
+                                    placeholder="Share your thoughts..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Post Comment
+                        </button>
+                    </form>
+
+                    <div class="payload-hint">
+                        <h6 class="text-info mb-2">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Stored XSS Payload:
+                        </h6>
+                        <code class="text-info">
+                            &lt;script&gt;alert("Stored XSS")&lt;/script&gt;
+                        </code>
+                        <button class="btn btn-outline-info btn-sm ms-3" onclick="loadStoredPayload()">
+                            <i class="fas fa-copy me-1"></i>Load Example
+                        </button>
+                        
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                This payload will be stored and executed every time someone views the comments.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comments Display -->
+            <div class="col-lg-6">
+                <div class="comments-section">
+                    <h3 class="mb-4">
+                        <i class="fas fa-comment me-2"></i>
+                        Comments (<span id="commentCount">0</span>)
+                    </h3>
+                    
+                    <div id="commentsContainer">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-comment-slash fa-3x mb-3"></i>
+                            <p>No comments yet. Be the first to share your thoughts!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        {% if security_mode == 'secure' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                <strong>Secure Mode:</strong> Comments are HTML-encoded before storage
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Vulnerable Mode:</strong> Comments are stored without sanitization
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Understanding Stored XSS
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">What is Stored XSS?</h6>
+                        <p>Stored XSS occurs when malicious scripts are permanently stored on the target server (database, file system, etc.) and then displayed to users without proper sanitization.</p>
+                        
+                        <h6 class="text-primary">Why is it Dangerous?</h6>
+                        <ul>
+                            <li>Persistent - affects all users who view the content</li>
+                            <li>No user interaction required beyond viewing</li>
+                            <li>Can be used for session hijacking, data theft</li>
+                            <li>Difficult to detect by victims</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Prevention</h6>
+                        <div class="bg-dark p-3 rounded">
+                            <code class="text-light">
+                                # Secure comment storage<br>
+                                import html<br><br>
+                                
+                                def store_comment(author, content):<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;safe_author = html.escape(author)<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;safe_content = html.escape(content)<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;save_to_database(safe_author, safe_content)
+                            </code>
+                        </div>
+                        
+                        <h6 class="text-primary mt-3">Output Encoding</h6>
+                        <p>Always encode data when displaying it, even if you think it's safe from input validation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Stored XSS Successful!
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Excellent! You've successfully executed a stored XSS attack.</p>
+                    <p>The malicious script was stored in the database and executed when the comments were displayed. This affects all users who view this page.</p>
+                    <p>This demonstrates why input validation and output encoding are both critical for preventing stored XSS.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="/" class="btn btn-primary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let challengeCompleted = false;
+        let comments = [];
+        
+        // Handle form submission
+        document.getElementById('commentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const author = document.getElementById('authorName').value.trim();
+            const content = document.getElementById('commentText').value.trim();
+            
+            if (!author || !content) {
+                alert('Please fill in both name and comment fields');
+                return;
+            }
+            
+            addComment(author, content);
+            
+            // Clear form
+            document.getElementById('commentText').value = '';
+        });
+        
+        function addComment(author, content) {
+            const timestamp = new Date().toLocaleString();
+            
+            const comment = {
+                id: Date.now(),
+                author: author,
+                content: content,
+                timestamp: timestamp
+            };
+            
+            comments.push(comment);
+            renderComments();
+            
+            // Check for XSS payload
+            if (content.toLowerCase().includes('<script>') && content.toLowerCase().includes('alert(')) {
+                setTimeout(() => {
+                    // The script should execute when rendered
+                }, 100);
+            }
+        }
+        
+        function renderComments() {
+            const container = document.getElementById('commentsContainer');
+            const secureMode = {{ 'true' if security_mode == 'secure' else 'false' }};
+            
+            if (comments.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-comment-slash fa-3x mb-3"></i>
+                        <p>No comments yet. Be the first to share your thoughts!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            comments.forEach(comment => {
+                const safeAuthor = secureMode ? escapeHtml(comment.author) : comment.author;
+                const safeContent = secureMode ? escapeHtml(comment.content) : comment.content;
+                
+                html += `
+                    <div class="comment-item">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="text-primary mb-0">${safeAuthor}</h6>
+                            <small class="text-muted">${comment.timestamp}</small>
+                        </div>
+                        <div class="comment-content">
+                            ${safeContent}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            document.getElementById('commentCount').textContent = comments.length;
+        }
+        
+        function loadStoredPayload() {
+            document.getElementById('commentText').value = '<script>alert("Stored XSS")</script>';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Override alert function to detect XSS execution
+        const originalAlert = window.alert;
+        window.alert = function(message) {
+            if (message === 'Stored XSS' && !challengeCompleted) {
+                challengeCompleted = true;
+                
+                // Log the successful exploit
+                fetch('/log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'lab_success',
+                        challenge_id: 3,
+                        payload: '<script>alert("Stored XSS")</script>',
+                        lab_url: window.location.href,
+                        timestamp: new Date().toISOString()
+                    })
+                }).then(() => {
+                    // Show success modal
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                    
+                    // Submit challenge completion
+                    fetch('/challenge/3/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'payload=' + encodeURIComponent('<script>alert("Stored XSS")</script>')
+                    });
+                });
+            }
+            
+            return originalAlert.call(this, message);
+        };
+        
+        // Initialize with empty comments
+        renderComments();
+    </script>
+</body>
+</html>

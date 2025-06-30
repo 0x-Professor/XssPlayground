@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab: Reflected XSS - Attribute Context</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .lab-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .lab-header {
+            background: linear-gradient(135deg, #fd7e14, #ffc107);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .profile-editor {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-preview {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            min-height: 300px;
+        }
+        
+        .vulnerability-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .payload-hint {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-warning);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Vulnerability Indicator -->
+    <div class="vulnerability-indicator">
+        <span class="badge bg-warning text-dark fs-6">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Attribute Context Lab
+        </span>
+    </div>
+
+    <div class="lab-container">
+        <!-- Lab Header -->
+        <div class="lab-header">
+            <h1><i class="fas fa-user-edit me-3"></i>Profile Editor</h1>
+            <p class="mb-0">Update your profile information with real-time preview</p>
+        </div>
+
+        <div class="row">
+            <!-- Profile Editor -->
+            <div class="col-lg-6">
+                <div class="profile-editor">
+                    <h3 class="text-white mb-4">
+                        <i class="fas fa-edit me-2"></i>
+                        Edit Profile
+                    </h3>
+                    
+                    <form id="profileForm">
+                        <div class="mb-3">
+                            <label for="displayName" class="form-label text-white">Display Name</label>
+                            <input type="text" 
+                                   id="displayName" 
+                                   class="form-control form-control-lg" 
+                                   placeholder="Enter your display name"
+                                   value="{{ request.args.get('name', 'User123') }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="userBio" class="form-label text-white">Bio</label>
+                            <textarea id="userBio" 
+                                    class="form-control" 
+                                    rows="3" 
+                                    placeholder="Tell us about yourself...">Web security enthusiast</textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>
+                            Update Profile
+                        </button>
+                    </form>
+
+                    <div class="payload-hint">
+                        <h6 class="text-warning mb-2">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Attribute Context Payload:
+                        </h6>
+                        <code class="text-warning">
+                            "><script>alert(1)</script>
+                        </code>
+                        <button class="btn btn-outline-warning btn-sm ms-3" onclick="loadAttributePayload()">
+                            <i class="fas fa-copy me-1"></i>Load Example
+                        </button>
+                        
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                This payload breaks out of the attribute context by closing the quote and HTML tag.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Preview -->
+            <div class="col-lg-6">
+                <div class="profile-preview">
+                    <h3 class="mb-4">
+                        <i class="fas fa-user me-2"></i>
+                        Profile Preview
+                    </h3>
+                    
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="mb-3">
+                                <i class="fas fa-user-circle fa-4x text-primary"></i>
+                            </div>
+                            
+                            <!-- Vulnerable attribute injection point -->
+                            <div class="mb-3">
+                                {% set user_name = request.args.get('name', 'User123') %}
+                                {% if security_mode == 'secure' %}
+                                    <input type="text" 
+                                           class="form-control text-center fw-bold" 
+                                           value="{{ user_name|e }}" 
+                                           readonly>
+                                {% else %}
+                                    <input type="text" 
+                                           class="form-control text-center fw-bold" 
+                                           value="{{ user_name|safe }}" 
+                                           readonly>
+                                {% endif %}
+                                <small class="text-muted">Display Name (reflected in value attribute)</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <textarea class="form-control" rows="3" readonly>Web security enthusiast</textarea>
+                                <small class="text-muted">User Bio</small>
+                            </div>
+                            
+                            <div class="text-muted">
+                                <small>Member since 2025</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        {% if security_mode == 'secure' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                <strong>Secure Mode:</strong> Input is properly HTML-encoded in attributes
+                            </div>
+                        {% else %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Vulnerable Mode:</strong> Input is reflected directly in HTML attributes
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explanation Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Understanding Attribute Context XSS
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">The Challenge</h6>
+                        <p>Your input is reflected inside an HTML attribute value. Standard script tags won't work here because they're treated as text content within the attribute.</p>
+                        
+                        <h6 class="text-primary">The Solution</h6>
+                        <p>You need to:</p>
+                        <ol>
+                            <li>Close the current attribute with a quote (<code>"</code>)</li>
+                            <li>Close the HTML tag with <code>&gt;</code></li>
+                            <li>Insert your XSS payload</li>
+                            <li>Optionally comment out the rest</li>
+                        </ol>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Vulnerable Code</h6>
+                        <div class="bg-dark p-3 rounded">
+                            <code class="text-light">
+                                # The vulnerable attribute injection<br>
+                                name = request.args.get('name')<br>
+                                html = f'&lt;input value="{name}"&gt;'<br><br>
+                                
+                                # If name = '"><script>alert(1)</script>'<br>
+                                # Result: &lt;input value=""><script>alert(1)</script>"&gt;
+                            </code>
+                        </div>
+                        
+                        <h6 class="text-primary mt-3">Secure Version</h6>
+                        <div class="bg-success p-3 rounded">
+                            <code class="text-light">
+                                # Properly escape for attribute context<br>
+                                name = html.escape(request.args.get('name'), quote=True)<br>
+                                html = f'&lt;input value="{name}"&gt;'
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Attribute Context XSS Successful!
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Excellent! You've successfully exploited the attribute context vulnerability.</p>
+                    <p>You broke out of the HTML attribute and executed JavaScript by properly escaping the context.</p>
+                    <p>This demonstrates why context-aware output encoding is crucial for preventing XSS.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="/" class="btn btn-primary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let challengeCompleted = false;
+        
+        // Handle form submission
+        document.getElementById('profileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('displayName').value;
+            
+            // Update URL and reload to show results
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('name', name);
+            window.location.href = newUrl.toString();
+        });
+        
+        // Load attribute payload example
+        function loadAttributePayload() {
+            document.getElementById('displayName').value = '"><script>alert(1)</script>';
+        }
+        
+        // Override alert function to detect XSS execution
+        const originalAlert = window.alert;
+        window.alert = function(message) {
+            if (message == 1 && !challengeCompleted) {
+                challengeCompleted = true;
+                
+                // Log the successful exploit
+                fetch('/log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'lab_success',
+                        challenge_id: 2,
+                        payload: new URLSearchParams(window.location.search).get('name'),
+                        lab_url: window.location.href,
+                        timestamp: new Date().toISOString()
+                    })
+                }).then(() => {
+                    // Show success modal
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                    
+                    // Submit challenge completion
+                    fetch('/challenge/2/submit', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'payload=' + encodeURIComponent(new URLSearchParams(window.location.search).get('name') || '')
+                    });
+                });
+            }
+            
+            return originalAlert.call(this, message);
+        };
+    </script>
+</body>
+</html>
