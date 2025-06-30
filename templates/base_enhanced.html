@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}XSS Playground - Advanced Security Lab{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#6b7280',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                        info: '#06b6d4',
+                        dark: '#1f2937',
+                        darker: '#111827'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom styles -->
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .security-indicator {
+            animation: pulse-security 2s infinite;
+        }
+        
+        @keyframes pulse-security {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .challenge-card:hover {
+            transform: translateY(-4px);
+            transition: all 0.3s ease;
+        }
+        
+        .payload-output {
+            font-family: 'Courier New', monospace;
+            background: #0d1117;
+            border: 1px solid #30363d;
+        }
+        
+        .syntax-highlight {
+            background: #161b22;
+            border-left: 4px solid #f59e0b;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 border-b border-gray-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo and brand -->
+                <div class="flex items-center">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3">
+                        <i class="fas fa-shield-alt text-warning text-2xl"></i>
+                        <span class="text-xl font-bold text-white">XSS Playground</span>
+                        <span class="px-2 py-1 text-xs bg-warning text-gray-900 rounded-full font-medium">Advanced</span>
+                    </a>
+                </div>
+                
+                <!-- Navigation links -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{{ url_for('dashboard') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('payload_generator') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-code mr-2"></i>Payload Generator
+                    </a>
+                    <a href="{{ url_for('view_logs') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-list mr-2"></i>Logs
+                    </a>
+                    <a href="{{ url_for('user_progress_view') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-chart-line mr-2"></i>Progress
+                    </a>
+                    <a href="{{ url_for('help_page') }}" class="text-gray-300 hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+                        <i class="fas fa-question-circle mr-2"></i>Help
+                    </a>
+                </div>
+                
+                <!-- Security mode toggle and controls -->
+                <div class="flex items-center space-x-4">
+                    <!-- Dark mode toggle -->
+                    <button onclick="toggleDarkMode()" class="text-gray-300 hover:text-white p-2 rounded-lg transition-colors">
+                        <i class="fas fa-moon" id="darkModeIcon"></i>
+                    </button>
+                    
+                    <!-- Security mode -->
+                    <form method="POST" action="{{ url_for('toggle_security') }}" class="flex items-center space-x-2">
+                        <label class="text-sm text-gray-300">Security:</label>
+                        <select name="mode" onchange="this.form.submit()" 
+                                class="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-1.5 focus:ring-warning focus:border-warning">
+                            <option value="vulnerable" {% if security_mode == 'vulnerable' %}selected{% endif %}>
+                                🔓 Vulnerable
+                            </option>
+                            <option value="secure" {% if security_mode == 'secure' %}selected{% endif %}>
+                                🔒 Secure
+                            </option>
+                        </select>
+                    </form>
+                    
+                    <!-- Security status indicator -->
+                    {% if security_mode == 'secure' %}
+                        <span class="flex items-center px-3 py-1.5 bg-green-900 text-green-200 text-xs rounded-full security-indicator">
+                            <i class="fas fa-shield-alt mr-1.5"></i>SECURE
+                        </span>
+                    {% else %}
+                        <span class="flex items-center px-3 py-1.5 bg-red-900 text-red-200 text-xs rounded-full security-indicator">
+                            <i class="fas fa-exclamation-triangle mr-1.5"></i>VULNERABLE
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+                {% for category, message in messages %}
+                    <div class="mb-4 p-4 rounded-lg border-l-4 {% if category == 'error' %}bg-red-900 border-red-500 text-red-100{% elif category == 'success' %}bg-green-900 border-green-500 text-green-100{% elif category == 'warning' %}bg-yellow-900 border-yellow-500 text-yellow-100{% else %}bg-blue-900 border-blue-500 text-blue-100{% endif %}">
+                        <div class="flex items-center">
+                            <i class="fas fa-{% if category == 'error' %}exclamation-circle{% elif category == 'success' %}check-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} mr-3"></i>
+                            <span>{{ message }}</span>
+                            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-gray-400 hover:text-white">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold text-warning mb-4">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Educational Security Lab
+                    </h3>
+                    <p class="text-gray-400 text-sm">
+                        This XSS playground is designed for educational purposes only. 
+                        It demonstrates common web security vulnerabilities in a controlled environment.
+                        <strong class="text-red-400">Do not use these techniques on systems you don't own.</strong>
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+                    <div class="space-y-2">
+                        <form method="POST" action="{{ url_for('reset_progress') }}" class="inline">
+                            <button type="submit" onclick="return confirm('Reset all progress?')" 
+                                    class="text-gray-400 hover:text-red-400 text-sm transition-colors">
+                                <i class="fas fa-redo mr-2"></i>Reset Progress
+                            </button>
+                        </form>
+                        <br>
+                        <a href="{{ url_for('export_logs') }}" 
+                           class="text-gray-400 hover:text-blue-400 text-sm transition-colors">
+                            <i class="fas fa-download mr-2"></i>Export Logs
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-white mb-4">Resources</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="text-gray-400">
+                            <i class="fas fa-book mr-2"></i>OWASP XSS Guidelines
+                        </div>
+                        <div class="text-gray-400">
+                            <i class="fas fa-university mr-2"></i>PortSwigger Web Security Academy
+                        </div>
+                        <div class="text-gray-400">
+                            <i class="fas fa-shield-alt mr-2"></i>CSP Best Practices
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400 text-sm">
+                © 2025 XSS Playground - Advanced Security Laboratory
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Dark mode toggle
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('darkModeIcon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                icon.className = 'fas fa-sun';
+                localStorage.setItem('darkMode', 'false');
+            } else {
+                html.classList.add('dark');
+                icon.className = 'fas fa-moon';
+                localStorage.setItem('darkMode', 'true');
+            }
+        }
+        
+        // Initialize dark mode from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkMode = localStorage.getItem('darkMode');
+            const icon = document.getElementById('darkModeIcon');
+            
+            if (darkMode === 'false') {
+                document.documentElement.classList.remove('dark');
+                icon.className = 'fas fa-sun';
+            } else {
+                document.documentElement.classList.add('dark');
+                icon.className = 'fas fa-moon';
+            }
+        });
+        
+        // Auto-dismiss flash messages
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('[class*="bg-red-900"], [class*="bg-green-900"], [class*="bg-yellow-900"], [class*="bg-blue-900"]');
+            alerts.forEach(function(alert) {
+                if (alert.parentElement && alert.parentElement.classList.contains('pt-4')) {
+                    alert.style.transition = 'opacity 0.5s ease-out';
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        if (alert.parentElement) {
+                            alert.remove();
+                        }
+                    }, 500);
+                }
+            });
+        }, 5000);
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,385 @@
+{% extends "base_enhanced.html" %}
+
+{% block title %}Challenge {{ challenge.id }}: {{ challenge.title }} - XSS Playground{% endblock %}
+
+{% block content %}
+<!-- Challenge Header -->
+<div class="bg-gradient-to-r from-gray-800 to-gray-900 rounded-xl p-6 mb-8 border border-gray-700">
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center space-x-4">
+            <a href="{{ url_for('dashboard') }}" class="text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-white">
+                Challenge {{ challenge.id }}: {{ challenge.title }}
+            </h1>
+            <span class="px-3 py-1 text-sm rounded-full 
+                {% if challenge.difficulty == 'Easy' %}bg-green-900 text-green-200
+                {% elif challenge.difficulty == 'Medium' %}bg-yellow-900 text-yellow-200
+                {% else %}bg-red-900 text-red-200{% endif %}">
+                {{ challenge.difficulty }}
+            </span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            {% if challenge.solved %}
+                <span class="flex items-center px-3 py-1.5 bg-green-900 text-green-200 text-sm rounded-full">
+                    <i class="fas fa-check-circle mr-2"></i>SOLVED
+                </span>
+            {% endif %}
+            
+            {% if challenge.attempts > 0 %}
+                <span class="text-sm text-gray-400">
+                    {{ challenge.attempts }} attempts
+                </span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <p class="text-gray-300 mb-4">{{ challenge.description }}</p>
+    
+    <div class="bg-blue-900 border border-blue-700 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-blue-100 mb-2">
+            <i class="fas fa-target mr-2"></i>Objective
+        </h3>
+        <p class="text-blue-200">{{ challenge.objective }}</p>
+    </div>
+    
+    {% if challenge.show_hint %}
+    <div class="bg-yellow-900 border border-yellow-700 rounded-lg p-4 mt-4">
+        <h3 class="text-lg font-semibold text-yellow-100 mb-2">
+            <i class="fas fa-lightbulb mr-2"></i>Hint
+        </h3>
+        <p class="text-yellow-200">{{ challenge.hint }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Security Status -->
+<div class="mb-6">
+    {% if security_mode == 'secure' %}
+        <div class="bg-green-900 border border-green-700 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-shield-alt text-green-400 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-green-100">Secure Mode Active</h3>
+                    <p class="text-green-200 text-sm">Input sanitization is enabled. Switch to vulnerable mode to practice the attack.</p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-red-900 border border-red-700 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-red-100">Vulnerable Mode Active</h3>
+                    <p class="text-red-200 text-sm">Input sanitization is disabled. Perfect for practicing XSS attacks!</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Challenge Interface -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <!-- Input Section -->
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 class="text-xl font-semibold text-white mb-4">
+            <i class="fas fa-search mr-2"></i>Search Application
+        </h2>
+        
+        <p class="text-gray-400 text-sm mb-4">
+            This search application reflects your input in the results. Try to execute JavaScript.
+        </p>
+        
+        <form id="searchForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">
+                    Search Query:
+                </label>
+                <input type="text" 
+                       id="searchInput" 
+                       name="query"
+                       class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="Enter your search term...">
+                <div class="mt-2 text-xs text-gray-500">
+                    Try: <code class="bg-gray-700 px-2 py-1 rounded">&lt;script&gt;alert("XSS")&lt;/script&gt;</code>
+                </div>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-search mr-2"></i>Search
+                </button>
+                <button type="button" onclick="loadSamplePayload()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-magic mr-2"></i>Load Sample
+                </button>
+                <button type="button" onclick="clearInput()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-eraser mr-2"></i>Clear
+                </button>
+            </div>
+        </form>
+        
+        <!-- Payload Analysis -->
+        <div class="mt-6 bg-gray-900 rounded-lg p-4 border border-gray-600">
+            <h3 class="text-sm font-semibold text-gray-300 mb-2">Payload Analysis</h3>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-400">Length:</span>
+                    <span id="payloadLength" class="text-white ml-2">0</span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Type:</span>
+                    <span id="payloadType" class="text-white ml-2">None</span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Risk:</span>
+                    <span id="riskLevel" class="ml-2">
+                        <span class="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Unknown</span>
+                    </span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Tags:</span>
+                    <span id="tagCount" class="text-white ml-2">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Output Section -->
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h2 class="text-xl font-semibold text-white mb-4">
+            <i class="fas fa-eye mr-2"></i>Search Results
+        </h2>
+        
+        <div id="searchResults" class="bg-gray-900 rounded-lg p-4 border border-gray-600 min-h-64">
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-search text-3xl mb-3"></i>
+                <p>Enter a search query to see results</p>
+            </div>
+        </div>
+        
+        <div class="mt-4 bg-blue-900 rounded-lg p-4 border border-blue-700">
+            <h3 class="text-sm font-semibold text-blue-200 mb-2">
+                <i class="fas fa-info-circle mr-2"></i>How It Works
+            </h3>
+            <p class="text-blue-300 text-sm">
+                The search query is directly reflected in the HTML response without sanitization. 
+                In vulnerable mode, any HTML/JavaScript you enter will be executed by the browser.
+            </p>
+        </div>
+        
+        <!-- Success Detection -->
+        <div id="successAlert" class="hidden mt-4 bg-green-900 border border-green-700 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-400 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-green-100">Challenge Completed!</h3>
+                    <p class="text-green-200 text-sm">XSS payload executed successfully. Well done!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Code Example -->
+<div class="mt-8 bg-gray-800 rounded-xl p-6 border border-gray-700">
+    <h2 class="text-xl font-semibold text-white mb-4">
+        <i class="fas fa-code mr-2"></i>Vulnerable Code Example
+    </h2>
+    
+    <div class="bg-gray-900 rounded-lg p-4 syntax-highlight">
+        <pre class="text-sm text-gray-300"><code>{% if security_mode == 'secure' %}// SECURE VERSION: Input sanitization enabled
+search_query = request.args.get('q', '')
+sanitized_query = html.escape(search_query)  # HTML encoding prevents XSS
+result_html = f"&lt;div&gt;Search results for: {sanitized_query}&lt;/div&gt;"{% else %}// VULNERABLE VERSION: No input sanitization
+search_query = request.args.get('q', '')
+result_html = f"&lt;div&gt;Search results for: {search_query}&lt;/div&gt;"  # Direct reflection - XSS risk!
+
+# The query is inserted directly into HTML without encoding:
+# If query = "&lt;script&gt;alert('XSS')&lt;/script&gt;"
+# Result: &lt;div&gt;Search results for: &lt;script&gt;alert('XSS')&lt;/script&gt;&lt;/div&gt;{% endif %}</code></pre>
+    </div>
+    
+    <div class="mt-4 text-sm text-gray-400">
+        <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+        The vulnerability occurs when user input is reflected directly in the HTML response without proper encoding.
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let challengeCompleted = {{ 'true' if challenge.solved else 'false' }};
+    
+    // Form submission handler
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const query = document.getElementById('searchInput').value;
+        performSearch(query);
+    });
+    
+    // Real-time payload analysis
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        analyzePayload(e.target.value);
+    });
+    
+    function performSearch(query) {
+        const resultsDiv = document.getElementById('searchResults');
+        
+        {% if security_mode == 'secure' %}
+            // Secure mode: escape HTML
+            const sanitizedQuery = escapeHtml(query);
+            resultsDiv.innerHTML = `
+                <div class="border-l-4 border-green-500 pl-4 py-2">
+                    <h3 class="text-green-400 font-semibold">Search results for: ${sanitizedQuery}</h3>
+                    <p class="text-gray-400 text-sm mt-2">No results found.</p>
+                    <div class="mt-2 text-xs text-green-300">
+                        ✓ Input was safely sanitized and HTML-encoded
+                    </div>
+                </div>
+            `;
+        {% else %}
+            // Vulnerable mode: direct injection
+            resultsDiv.innerHTML = `
+                <div class="border-l-4 border-red-500 pl-4 py-2">
+                    <h3 class="text-red-400 font-semibold">Search results for: ${query}</h3>
+                    <p class="text-gray-400 text-sm mt-2">No results found.</p>
+                    <div class="mt-2 text-xs text-red-300">
+                        ⚠️ Input was inserted directly without sanitization
+                    </div>
+                </div>
+            `;
+        {% endif %}
+        
+        // Check for XSS success
+        if (query.toLowerCase().includes('alert("xss")') && !challengeCompleted) {
+            setTimeout(detectSuccess, 100);
+        }
+        
+        // Log the attempt
+        logPayloadAttempt(query);
+    }
+    
+    function analyzePayload(payload) {
+        const length = payload.length;
+        const hasScript = /<script[^>]*>/i.test(payload);
+        const hasEvent = /on\w+\s*=/i.test(payload);
+        const hasJavascript = /javascript:/i.test(payload);
+        
+        document.getElementById('payloadLength').textContent = length;
+        
+        let type = 'Text';
+        let risk = 'Low';
+        let riskClass = 'bg-green-600 text-green-100';
+        
+        if (hasScript) {
+            type = 'Script Tag';
+            risk = 'High';
+            riskClass = 'bg-red-600 text-red-100';
+        } else if (hasEvent) {
+            type = 'Event Handler';
+            risk = 'Medium';
+            riskClass = 'bg-yellow-600 text-yellow-100';
+        } else if (hasJavascript) {
+            type = 'JavaScript URI';
+            risk = 'Medium';
+            riskClass = 'bg-yellow-600 text-yellow-100';
+        }
+        
+        document.getElementById('payloadType').textContent = type;
+        document.getElementById('riskLevel').innerHTML = `<span class="px-2 py-1 ${riskClass} rounded text-xs">${risk}</span>`;
+        
+        const tags = (payload.match(/<[^>]+>/g) || []).length;
+        document.getElementById('tagCount').textContent = tags;
+    }
+    
+    function loadSamplePayload() {
+        const samplePayloads = [
+            '<script>alert("XSS")</script>',
+            '<img src=x onerror=alert("XSS")>',
+            '<svg onload=alert("XSS")>',
+            'javascript:alert("XSS")'
+        ];
+        
+        const randomPayload = samplePayloads[Math.floor(Math.random() * samplePayloads.length)];
+        document.getElementById('searchInput').value = randomPayload;
+        analyzePayload(randomPayload);
+    }
+    
+    function clearInput() {
+        document.getElementById('searchInput').value = '';
+        analyzePayload('');
+        document.getElementById('searchResults').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-search text-3xl mb-3"></i>
+                <p>Enter a search query to see results</p>
+            </div>
+        `;
+    }
+    
+    function detectSuccess() {
+        if (!challengeCompleted) {
+            document.getElementById('successAlert').classList.remove('hidden');
+            
+            // Submit challenge completion
+            fetch(`/challenge/{{ challenge.id }}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'payload=' + encodeURIComponent(document.getElementById('searchInput').value)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    challengeCompleted = true;
+                    // Show success message
+                    setTimeout(() => {
+                        if (confirm('Challenge completed! Return to dashboard?')) {
+                            window.location.href = '{{ url_for("dashboard") }}';
+                        }
+                    }, 1000);
+                }
+            });
+        }
+    }
+    
+    function logPayloadAttempt(payload) {
+        fetch('/log', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: 'challenge_attempt',
+                challenge_id: {{ challenge.id }},
+                payload: payload,
+                url: window.location.href,
+                timestamp: new Date().toISOString()
+            })
+        }).catch(console.error);
+    }
+    
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+    
+    // Override alert function to detect success
+    const originalAlert = window.alert;
+    window.alert = function(message) {
+        if (message === 'XSS' && !challengeCompleted) {
+            detectSuccess();
+        }
+        return originalAlert.call(this, message);
+    };
+</script>
+{% endblock %}

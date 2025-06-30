@@ -1,0 +1,262 @@
+{% extends "base_enhanced.html" %}
+
+{% block title %}Dashboard - XSS Playground{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="bg-gradient-to-r from-blue-900 to-purple-900 rounded-2xl p-8 mb-8 glass-effect">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold text-white mb-4">
+            <i class="fas fa-shield-alt text-warning mr-4"></i>
+            Advanced XSS Security Laboratory
+        </h1>
+        <p class="text-xl text-gray-300 mb-6">
+            Master Cross-Site Scripting vulnerabilities through hands-on challenges
+        </p>
+        <div class="flex justify-center items-center space-x-8">
+            <div class="text-center">
+                <div class="text-3xl font-bold text-warning">{{ total_challenges }}</div>
+                <div class="text-sm text-gray-400">Total Challenges</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-green-400">{{ solved_challenges }}</div>
+                <div class="text-sm text-gray-400">Completed</div>
+            </div>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-400">{{ progress_percentage }}%</div>
+                <div class="text-sm text-gray-400">Progress</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="mb-8">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-lg font-semibold text-white">Overall Progress</h2>
+        <span class="text-sm text-gray-400">{{ solved_challenges }}/{{ total_challenges }} challenges completed</span>
+    </div>
+    <div class="w-full bg-gray-700 rounded-full h-3">
+        <div class="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500" 
+             style="width: {{ progress_percentage }}%"></div>
+    </div>
+</div>
+
+<!-- Security Status Alert -->
+<div class="mb-8">
+    {% if security_mode == 'secure' %}
+        <div class="bg-green-900 border border-green-700 rounded-xl p-6">
+            <div class="flex items-center">
+                <i class="fas fa-shield-alt text-green-400 text-3xl mr-4"></i>
+                <div>
+                    <h3 class="text-xl font-semibold text-green-100 mb-2">Secure Mode Enabled</h3>
+                    <p class="text-green-200">Input sanitization is active. XSS payloads will be escaped and rendered harmless. Switch to vulnerable mode to practice attacks.</p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-red-900 border border-red-700 rounded-xl p-6">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 text-3xl mr-4"></i>
+                <div>
+                    <h3 class="text-xl font-semibold text-red-100 mb-2">Vulnerable Mode Active</h3>
+                    <p class="text-red-200">Input sanitization is disabled. XSS payloads will execute. Perfect for practicing attacks in a safe environment!</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Challenge Categories -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-search text-warning text-2xl mr-3"></i>
+            <h3 class="text-lg font-semibold text-white">Reflected XSS</h3>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Learn how user input reflected in web pages can be exploited when proper validation is missing.</p>
+        <div class="text-2xl font-bold text-warning">
+            {{ challenges | selectattr('type', 'equalto', 'reflected') | selectattr('solved', 'equalto', true) | list | length }}/{{ challenges | selectattr('type', 'equalto', 'reflected') | list | length }}
+        </div>
+        <div class="text-xs text-gray-500">Challenges Completed</div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-database text-red-400 text-2xl mr-3"></i>
+            <h3 class="text-lg font-semibold text-white">Stored XSS</h3>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Explore how malicious scripts stored in databases can affect all users who view the content.</p>
+        <div class="text-2xl font-bold text-red-400">
+            {{ challenges | selectattr('type', 'equalto', 'stored') | selectattr('solved', 'equalto', true) | list | length }}/{{ challenges | selectattr('type', 'equalto', 'stored') | list | length }}
+        </div>
+        <div class="text-xs text-gray-500">Challenges Completed</div>
+    </div>
+    
+    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-code-branch text-blue-400 text-2xl mr-3"></i>
+            <h3 class="text-lg font-semibold text-white">DOM XSS</h3>
+        </div>
+        <p class="text-gray-400 text-sm mb-4">Master client-side DOM manipulation vulnerabilities and advanced bypass techniques.</p>
+        <div class="text-2xl font-bold text-blue-400">
+            {{ challenges | selectattr('type', 'equalto', 'dom') | selectattr('solved', 'equalto', true) | list | length }}/{{ challenges | selectattr('type', 'equalto', 'dom') | list | length }}
+        </div>
+        <div class="text-xs text-gray-500">Challenges Completed</div>
+    </div>
+</div>
+
+<!-- Challenges Grid -->
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-white mb-6">
+        <i class="fas fa-list mr-3"></i>
+        Challenge Levels
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for challenge in challenges %}
+        <div class="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden challenge-card transition-all duration-300 hover:border-warning">
+            <!-- Challenge Header -->
+            <div class="p-6 pb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm font-medium px-3 py-1 rounded-full 
+                        {% if challenge.difficulty == 'Easy' %}bg-green-900 text-green-200
+                        {% elif challenge.difficulty == 'Medium' %}bg-yellow-900 text-yellow-200
+                        {% else %}bg-red-900 text-red-200{% endif %}">
+                        {{ challenge.difficulty }}
+                    </span>
+                    {% if challenge.solved %}
+                        <i class="fas fa-check-circle text-green-400 text-xl"></i>
+                    {% else %}
+                        <i class="fas fa-lock text-gray-500 text-xl"></i>
+                    {% endif %}
+                </div>
+                
+                <h3 class="text-lg font-semibold text-white mb-2">
+                    Challenge {{ challenge.id }}: {{ challenge.title }}
+                </h3>
+                
+                <p class="text-gray-400 text-sm mb-4">{{ challenge.description }}</p>
+                
+                <div class="flex items-center text-xs text-gray-500 mb-4">
+                    <i class="fas fa-tag mr-2"></i>{{ challenge.type | title }}
+                    {% if challenge.attempts > 0 %}
+                        <span class="ml-4">
+                            <i class="fas fa-attempt mr-1"></i>{{ challenge.attempts }} attempts
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Challenge Actions -->
+            <div class="px-6 pb-6">
+                <div class="flex space-x-3">
+                    <a href="{{ url_for('challenge', challenge_id=challenge.id) }}" 
+                       class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-center text-sm font-medium transition-colors">
+                        {% if challenge.solved %}
+                            <i class="fas fa-eye mr-2"></i>Review
+                        {% else %}
+                            <i class="fas fa-play mr-2"></i>Start
+                        {% endif %}
+                    </a>
+                    
+                    {% if challenge.solved %}
+                        <button class="bg-green-600 text-white py-2 px-3 rounded-lg text-sm">
+                            <i class="fas fa-trophy"></i>
+                        </button>
+                    {% elif challenge.attempts >= 3 %}
+                        <button onclick="showHint({{ challenge.id }})" 
+                                class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-lightbulb"></i>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
+    <h3 class="text-lg font-semibold text-white mb-4">
+        <i class="fas fa-chart-bar mr-2"></i>
+        Laboratory Statistics
+    </h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="text-center">
+            <div class="text-2xl font-bold text-blue-400 mb-1">{{ challenges | selectattr('type', 'equalto', 'reflected') | list | length }}</div>
+            <div class="text-sm text-gray-400">Reflected XSS</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-red-400 mb-1">{{ challenges | selectattr('type', 'equalto', 'stored') | list | length }}</div>
+            <div class="text-sm text-gray-400">Stored XSS</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-green-400 mb-1">{{ challenges | selectattr('type', 'equalto', 'dom') | list | length }}</div>
+            <div class="text-sm text-gray-400">DOM XSS</div>
+        </div>
+        <div class="text-center">
+            <div class="text-2xl font-bold text-purple-400 mb-1">{{ challenges | selectattr('difficulty', 'equalto', 'Hard') | list | length }}</div>
+            <div class="text-sm text-gray-400">Advanced</div>
+        </div>
+    </div>
+</div>
+
+<!-- Hint Modal -->
+<div id="hintModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-gray-800 rounded-xl p-6 max-w-md mx-4 border border-gray-700">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-white">
+                <i class="fas fa-lightbulb text-yellow-400 mr-2"></i>
+                Hint
+            </h3>
+            <button onclick="closeHint()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p id="hintText" class="text-gray-300 mb-4"></p>
+        <button onclick="closeHint()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors">
+            Got it!
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const challengeHints = {
+        {% for challenge in challenges %}
+        {{ challenge.id }}: "{{ challenge.hint | replace('"', '\\"') }}",
+        {% endfor %}
+    };
+    
+    function showHint(challengeId) {
+        const modal = document.getElementById('hintModal');
+        const hintText = document.getElementById('hintText');
+        
+        hintText.textContent = challengeHints[challengeId] || 'No hint available for this challenge.';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+    
+    function closeHint() {
+        const modal = document.getElementById('hintModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    
+    // Close modal when clicking outside
+    document.getElementById('hintModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeHint();
+        }
+    });
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeHint();
+        }
+    });
+</script>
+{% endblock %}
