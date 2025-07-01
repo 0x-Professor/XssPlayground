@@ -20,10 +20,10 @@ import json
 import logging
 import hashlib
 import secrets
+import re
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Dict, List, Optional, Tuple
-
 from flask import (
     Flask, render_template, request, jsonify, session, 
     redirect, url_for, flash, make_response, abort
@@ -328,6 +328,52 @@ CHALLENGE_LABS = {
     }
 }
 
+# Add configuration for advanced labs
+ADVANCED_LABS = {
+    'dom-clobbering': {
+        'title': 'DOM Clobbering Advanced Lab',
+        'category': 'Advanced DOM',
+        'difficulty': 'Expert',
+        'points': 500,
+        'checkpoints': [
+            'basic-clobbering',
+            'property-collision',
+            'prototype-pollution'
+        ],
+        'csp_policy': "default-src 'self'; script-src 'nonce-{nonce}' 'strict-dynamic'",
+        'sandbox': 'allow-scripts allow-same-origin'
+    },
+    'filter-bypass': {
+        'title': 'Advanced Filter Bypass Lab',
+        'category': 'Filter Evasion',
+        'difficulty': 'Expert',
+        'points': 450,
+        'checkpoints': [
+            'regex-bypass',
+            'waf-evasion',
+            'encoding-tricks'
+        ],
+        'csp_policy': None,
+        'sandbox': 'allow-scripts allow-same-origin'
+    },
+    'framework-xss': {
+        'title': 'Modern Framework XSS',
+        'category': 'Framework Security',
+        'difficulty': 'Expert',
+        'points': 600,
+        'checkpoints': [
+            'react-xss',
+            'angular-template-injection',
+            'vue-template-xss'
+        ],
+        'csp_policy': "default-src 'self'; script-src 'nonce-{nonce}' 'unsafe-eval'",
+        'sandbox': 'allow-scripts allow-same-origin'
+    }
+}
+
+# Update the CHALLENGE_LABS dictionary
+CHALLENGE_LABS.update(ADVANCED_LABS)
+
 # Payload Generation Templates
 PAYLOAD_TEMPLATES = {
     'html_content': [
@@ -507,7 +553,6 @@ def submit_challenge(challenge_id):
     success = False
     
     # Validate solution based on challenge type
-    import re
     if re.search(challenge['solution_pattern'], payload, re.IGNORECASE):
         success = True
         update_user_progress(challenge_id, solved=True)
@@ -691,6 +736,78 @@ def reset_progress():
         del user_progress[session_id]
     
     return jsonify({'success': True, 'message': 'Progress reset successfully'})
+
+@app.route('/api/verify-challenge', methods=['POST'])
+def verify_challenge():
+    """Verify challenge completion and update progress"""
+    try:
+        data = request.get_json()
+        challenge_id = data.get('challengeId')
+        payload = data.get('payload')
+        checkpoint = data.get('checkpoint')
+        
+        if not all([challenge_id, payload, checkpoint]):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        challenge = CHALLENGE_LABS.get(challenge_id)
+        if not challenge:
+            return jsonify({'error': 'Invalid challenge'}), 404
+            
+        # Verify the challenge solution
+        success = verify_solution(challenge, payload, checkpoint)
+        
+        if success:
+            # Update progress
+            user_id = session.get('user_id')
+            if user_id:
+                update_user_progress(user_id, challenge_id, checkpoint)
+                
+            return jsonify({
+                'success': True,
+                'points': challenge['points'],
+                'message': 'Challenge completed successfully!'
+            })
+        
+        return jsonify({
+            'success': False,
+            'message': 'Solution incorrect. Try again!'
+        })
+        
+    except Exception as e:
+        logger.error(f"Challenge verification error: {e}")
+        return jsonify({'error': 'Verification failed'}), 500
+
+def verify_solution(challenge, payload, checkpoint):
+    """Verify if the submitted solution is correct"""
+    # Implementation specific to each challenge type
+    if challenge['category'] == 'Advanced DOM':
+        return verify_dom_clobbering(payload, checkpoint)
+    elif challenge['category'] == 'Filter Evasion':
+        return verify_filter_bypass(payload, checkpoint)
+    elif challenge['category'] == 'Framework Security':
+        return verify_framework_xss(payload, checkpoint)
+    return False
+
+def update_user_progress(user_id, challenge_id, checkpoint):
+    """Update user's progress for the challenge"""
+    if user_id not in user_progress:
+        user_progress[user_id] = {'labProgress': {}}
+        
+    if challenge_id not in user_progress[user_id]['labProgress']:
+        user_progress[user_id]['labProgress'][challenge_id] = {
+            'completed': False,
+            'checkpoints': [],
+            'timestamp': datetime.now().isoformat(),
+            'score': 0
+        }
+        
+    progress = user_progress[user_id]['labProgress'][challenge_id]
+    if checkpoint not in progress['checkpoints']:
+        progress['checkpoints'].append(checkpoint)
+        progress['score'] += CHALLENGE_LABS[challenge_id]['points'] // len(CHALLENGE_LABS[challenge_id]['checkpoints'])
+        
+    if len(progress['checkpoints']) == len(CHALLENGE_LABS[challenge_id]['checkpoints']):
+        progress['completed'] = True
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
