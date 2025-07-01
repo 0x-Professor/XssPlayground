@@ -13,10 +13,7 @@
             <h1 class="text-2xl font-bold text-white">
                 Challenge {{ challenge.id }}: {{ challenge.title }}
             </h1>
-            <span class="px-3 py-1 text-sm rounded-full 
-                {% if challenge.difficulty == 'Easy' %}bg-green-900 text-green-200
-                {% elif challenge.difficulty == 'Medium' %}bg-yellow-900 text-yellow-200
-                {% else %}bg-red-900 text-red-200{% endif %}">
+            <span class="px-3 py-1 text-sm rounded-full bg-yellow-900 text-yellow-200">
                 {{ challenge.difficulty }}
             </span>
         </div>
@@ -55,16 +52,41 @@
     {% endif %}
 </div>
 
+<!-- Security Status -->
+<div class="mb-6">
+    {% if security_mode == 'secure' %}
+        <div class="bg-green-900 border border-green-700 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-shield-alt text-green-400 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-green-100">Secure Mode Active</h3>
+                    <p class="text-green-200 text-sm">Input sanitization is enabled. Switch to vulnerable mode to practice the attack.</p>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="bg-red-900 border border-red-700 rounded-lg p-4">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-red-100">Vulnerable Mode Active</h3>
+                    <p class="text-red-200 text-sm">Input sanitization is disabled. Perfect for practicing XSS attacks!</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
 <!-- Challenge Interface -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
     <!-- Input Section -->
     <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
         <h2 class="text-xl font-semibold text-white mb-4">
-            <i class="fas fa-user-edit mr-2"></i>Profile Editor
+            <i class="fas fa-user-edit mr-2"></i>Profile Update Form
         </h2>
         
         <p class="text-gray-400 text-sm mb-4">
-            Update your profile information. Notice how your input is reflected in the preview.
+            This form reflects your input in an HTML attribute. Try to break out of the attribute context.
         </p>
         
         <form id="profileForm" class="space-y-4">
@@ -76,10 +98,9 @@
                        id="nameInput" 
                        name="name"
                        class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                       placeholder="Enter your display name..."
-                       value="User123">
+                       placeholder="Enter your display name...">
                 <div class="mt-2 text-xs text-gray-500">
-                    Try: <code class="bg-gray-700 px-2 py-1 rounded">"><script>alert(1)</script></code>
+                    Try: <code class="bg-gray-700 px-2 py-1 rounded">" onmouseover="alert(1)</code>
                 </div>
             </div>
             
@@ -87,64 +108,61 @@
                 <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors">
                     <i class="fas fa-save mr-2"></i>Update Profile
                 </button>
-                <button type="button" onclick="loadAttributePayload()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                <button type="button" onclick="loadSamplePayload()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
                     <i class="fas fa-magic mr-2"></i>Load Sample
+                </button>
+                <button type="button" onclick="clearInput()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-eraser mr-2"></i>Clear
                 </button>
             </div>
         </form>
         
-        <!-- Context Information -->
+        <!-- Payload Analysis -->
         <div class="mt-6 bg-gray-900 rounded-lg p-4 border border-gray-600">
-            <h3 class="text-sm font-semibold text-gray-300 mb-2">Vulnerability Context</h3>
-            <p class="text-gray-400 text-sm">
-                Your input is placed inside an HTML attribute value. To execute JavaScript, you need to:
-            </p>
-            <ol class="text-gray-400 text-sm mt-2 space-y-1">
-                <li>1. Close the current attribute with a quote</li>
-                <li>2. Break out with <code>&gt;</code> to end the tag</li>
-                <li>3. Insert your XSS payload</li>
-                <li>4. Comment out the rest with <code>&lt;!--</code></li>
-            </ol>
+            <h3 class="text-sm font-semibold text-gray-300 mb-2">Payload Analysis</h3>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="text-gray-400">Length:</span>
+                    <span id="payloadLength" class="text-white ml-2">0</span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Attributes:</span>
+                    <span id="attributeCount" class="text-white ml-2">0</span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Risk:</span>
+                    <span id="riskLevel" class="ml-2">
+                        <span class="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">Unknown</span>
+                    </span>
+                </div>
+                <div>
+                    <span class="text-gray-400">Context:</span>
+                    <span id="contextType" class="text-white ml-2">Attribute</span>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- Output Section -->
     <div class="bg-gray-800 rounded-xl p-6 border border-gray-700">
         <h2 class="text-xl font-semibold text-white mb-4">
-            <i class="fas fa-eye mr-2"></i>Profile Preview
+            <i class="fas fa-eye mr-2"></i>Profile Display
         </h2>
         
-        <div class="bg-gray-900 rounded-lg p-6 border border-gray-600">
-            <div class="flex items-center space-x-4 mb-4">
-                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                    <i class="fas fa-user text-white text-2xl"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-white">Profile Card</h3>
-                    <p class="text-gray-400 text-sm">Member since 2025</p>
-                </div>
-            </div>
-            
-            <!-- Vulnerable output - name is inserted into attribute -->
-            <div class="bg-gray-700 rounded p-4">
-                <div class="text-center">
-                    {% if security_mode == 'secure' %}
-                        <input type="text" id="displayName" value="User123" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full" readonly>
-                    {% else %}
-                        <input type="text" id="displayName" value="User123" class="bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 w-full" readonly>
-                    {% endif %}
-                    <p class="text-gray-400 text-sm mt-2">Display Name (reflected in value attribute)</p>
-                </div>
+        <div id="profileDisplay" class="bg-gray-900 rounded-lg p-4 border border-gray-600 min-h-64">
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-user text-3xl mb-3"></i>
+                <p>Update your profile to see the preview</p>
             </div>
         </div>
         
         <div class="mt-4 bg-orange-900 rounded-lg p-4 border border-orange-700">
             <h3 class="text-sm font-semibold text-orange-200 mb-2">
-                <i class="fas fa-info-circle mr-2"></i>Attribute Context XSS
+                <i class="fas fa-info-circle mr-2"></i>How It Works
             </h3>
             <p class="text-orange-300 text-sm">
-                The input is reflected inside an HTML attribute value. Standard script tags won't work here - 
-                you need to escape the attribute context first.
+                The display name is inserted into a <code>title</code> attribute without proper escaping. 
+                You can break out by closing the attribute and adding event handlers.
             </p>
         </div>
         
@@ -154,41 +172,34 @@
                 <i class="fas fa-check-circle text-green-400 mr-3"></i>
                 <div>
                     <h3 class="font-semibold text-green-100">Challenge Completed!</h3>
-                    <p class="text-green-200 text-sm">Successfully escaped the attribute context and executed JavaScript!</p>
+                    <p class="text-green-200 text-sm">Successfully broke out of attribute context! Well done!</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Source Code Analysis -->
+<!-- Code Example -->
 <div class="mt-8 bg-gray-800 rounded-xl p-6 border border-gray-700">
     <h2 class="text-xl font-semibold text-white mb-4">
-        <i class="fas fa-code mr-2"></i>Vulnerable Code Analysis
+        <i class="fas fa-code mr-2"></i>Vulnerable Code Example
     </h2>
     
     <div class="bg-gray-900 rounded-lg p-4 syntax-highlight">
-        <pre class="text-sm text-gray-300"><code>{% if security_mode == 'secure' %}// SECURE VERSION: Attribute encoding
-user_name = request.form.get('name', '')
-safe_name = html.escape(user_name, quote=True)  # Encode quotes too!
-html_output = f'&lt;input value="{safe_name}" readonly&gt;'{% else %}// VULNERABLE VERSION: No attribute encoding
-user_name = request.form.get('name', '')
-html_output = f'&lt;input value="{user_name}" readonly&gt;'  # Attribute injection risk!
+        <pre class="text-sm text-gray-300"><code>{% if security_mode == 'secure' %}// SECURE VERSION: HTML attribute encoding
+display_name = request.form.get('name', '')
+safe_name = html.escape(display_name, quote=True)  # Escapes quotes too
+profile_html = f'&lt;div title="{safe_name}"&gt;Welcome, {safe_name}!&lt;/div&gt;'{% else %}// VULNERABLE VERSION: Direct attribute injection
+display_name = request.form.get('name', '')
+profile_html = f'&lt;div title="{display_name}"&gt;Welcome, {display_name}!&lt;/div&gt;'  # Attribute injection risk!
 
-# If user_name = 'test"><script>alert(1)</script><input value="'
-# Result: &lt;input value="test">&lt;script>alert(1)&lt;/script>&lt;input value="" readonly>{% endif %}</code></pre>
+# If name = '" onmouseover="alert(1)' 
+# Result: &lt;div title="" onmouseover="alert(1)"&gt;Welcome, " onmouseover="alert(1)!&lt;/div&gt;{% endif %}</code></pre>
     </div>
     
-    <div class="mt-4 bg-yellow-900 border border-yellow-700 rounded-lg p-4">
-        <h3 class="text-sm font-semibold text-yellow-200 mb-2">
-            <i class="fas fa-exclamation-triangle mr-2"></i>Key Learning Points
-        </h3>
-        <ul class="text-yellow-300 text-sm space-y-1">
-            <li>• HTML attributes require special encoding considerations</li>
-            <li>• Both HTML entities AND quotes must be encoded in attributes</li>
-            <li>• Context matters - what works in HTML content may not work in attributes</li>
-            <li>• Successful exploitation requires understanding the injection point</li>
-        </ul>
+    <div class="mt-4 text-sm text-gray-400">
+        <i class="fas fa-exclamation-triangle text-yellow-400 mr-2"></i>
+        The vulnerability occurs when user input is placed inside HTML attributes without proper quote escaping.
     </div>
 </div>
 {% endblock %}
@@ -204,26 +215,59 @@ html_output = f'&lt;input value="{user_name}" readonly&gt;'  # Attribute injecti
         updateProfile(name);
     });
     
-    // Real-time preview update
+    // Real-time payload analysis
     document.getElementById('nameInput').addEventListener('input', function(e) {
-        updateProfile(e.target.value);
+        analyzePayload(e.target.value);
     });
     
     function updateProfile(name) {
-        const displayInput = document.getElementById('displayName');
+        const displayDiv = document.getElementById('profileDisplay');
         
         {% if security_mode == 'secure' %}
-            // Secure mode: properly escape for attribute context
-            const safeName = escapeAttribute(name);
-            displayInput.value = safeName;
+            // Secure mode: escape HTML attributes
+            const safeName = escapeHtml(name);
+            displayDiv.innerHTML = `
+                <div class="border-l-4 border-green-500 pl-4 py-2">
+                    <div title="${safeName}" class="bg-gray-800 p-4 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-green-400 font-semibold">Welcome, ${safeName}!</h3>
+                                <p class="text-gray-400 text-sm">Profile updated successfully</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-green-300">
+                        ✓ Input was safely escaped for attribute context
+                    </div>
+                </div>
+            `;
         {% else %}
-            // Vulnerable mode: direct insertion into attribute
-            displayInput.setAttribute('value', name);
-            displayInput.value = name;
+            // Vulnerable mode: direct attribute injection
+            displayDiv.innerHTML = `
+                <div class="border-l-4 border-red-500 pl-4 py-2">
+                    <div title="${name}" class="bg-gray-800 p-4 rounded-lg" onmouseover="">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-red-400 font-semibold">Welcome, ${name}!</h3>
+                                <p class="text-gray-400 text-sm">Profile updated</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-red-300">
+                        ⚠️ Input inserted directly into attribute without escaping
+                    </div>
+                </div>
+            `;
         {% endif %}
         
-        // Check for successful attribute escape
-        if (name.includes('">') && name.includes('<script>') && name.includes('alert(1)') && !challengeCompleted) {
+        // Check for XSS success
+        if (name.includes('onmouseover') && name.includes('alert') && !challengeCompleted) {
             setTimeout(detectSuccess, 100);
         }
         
@@ -231,18 +275,53 @@ html_output = f'&lt;input value="{user_name}" readonly&gt;'  # Attribute injecti
         logPayloadAttempt(name);
     }
     
-    function loadAttributePayload() {
-        const attributePayloads = [
-            '"><script>alert(1)</script>',
-            '" onmouseover="alert(1)" "',
-            '"><img src=x onerror=alert(1)>',
-            '" autofocus onfocus=alert(1) "',
-            '"><svg onload=alert(1)>'
+    function analyzePayload(payload) {
+        const length = payload.length;
+        const hasEventHandler = /on\w+\s*=/i.test(payload);
+        const hasQuoteBreak = /['"]/.test(payload);
+        const hasTagBreak = /<|>/.test(payload);
+        
+        document.getElementById('payloadLength').textContent = length;
+        
+        let risk = 'Low';
+        let riskClass = 'bg-green-600 text-green-100';
+        
+        if (hasEventHandler && hasQuoteBreak) {
+            risk = 'High';
+            riskClass = 'bg-red-600 text-red-100';
+        } else if (hasEventHandler || hasQuoteBreak) {
+            risk = 'Medium';
+            riskClass = 'bg-yellow-600 text-yellow-100';
+        }
+        
+        document.getElementById('riskLevel').innerHTML = `<span class="px-2 py-1 ${riskClass} rounded text-xs">${risk}</span>`;
+        
+        const attributes = (payload.match(/\w+\s*=/g) || []).length;
+        document.getElementById('attributeCount').textContent = attributes;
+    }
+    
+    function loadSamplePayload() {
+        const samplePayloads = [
+            '" onmouseover="alert(1)',
+            '" onfocus="alert(1)" autofocus="',
+            '" onclick="alert(1)',
+            '"><script>alert(1)</script><div title="'
         ];
         
-        const randomPayload = attributePayloads[Math.floor(Math.random() * attributePayloads.length)];
+        const randomPayload = samplePayloads[Math.floor(Math.random() * samplePayloads.length)];
         document.getElementById('nameInput').value = randomPayload;
-        updateProfile(randomPayload);
+        analyzePayload(randomPayload);
+    }
+    
+    function clearInput() {
+        document.getElementById('nameInput').value = '';
+        analyzePayload('');
+        document.getElementById('profileDisplay').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-user text-3xl mb-3"></i>
+                <p>Update your profile to see the preview</p>
+            </div>
+        `;
     }
     
     function detectSuccess() {
@@ -287,13 +366,13 @@ html_output = f'&lt;input value="{user_name}" readonly&gt;'  # Attribute injecti
         }).catch(console.error);
     }
     
-    function escapeAttribute(text) {
+    function escapeHtml(text) {
         const map = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            "'": '&#x27;'
+            "'": '&#039;'
         };
         
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
@@ -302,13 +381,10 @@ html_output = f'&lt;input value="{user_name}" readonly&gt;'  # Attribute injecti
     // Override alert function to detect success
     const originalAlert = window.alert;
     window.alert = function(message) {
-        if (message == 1 && !challengeCompleted) {
+        if (!challengeCompleted) {
             detectSuccess();
         }
         return originalAlert.call(this, message);
     };
-    
-    // Initialize with default value
-    updateProfile('User123');
 </script>
 {% endblock %}
