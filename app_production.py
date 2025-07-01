@@ -556,18 +556,25 @@ def submit_challenge(challenge_id):
     if re.search(challenge['solution_pattern'], payload, re.IGNORECASE):
         success = True
         
-        # Find next challenge - Convert all keys to integers for proper sorting
-        numeric_challenges = [cid for cid in CHALLENGE_LABS.keys() if isinstance(cid, int)]
+        # Find next challenge - Filter and sort only numeric challenge IDs
+        numeric_challenges = sorted([
+            cid for cid in CHALLENGE_LABS.keys() 
+            if isinstance(cid, int)
+        ])
+        
         next_challenge_id = None
-        
         if numeric_challenges:
-            sorted_challenges = sorted(numeric_challenges)
-            current_index = sorted_challenges.index(challenge_id)
-            if current_index < len(sorted_challenges) - 1:
-                next_challenge_id = sorted_challenges[current_index + 1]
+            current_index = numeric_challenges.index(challenge_id)
+            if current_index < len(numeric_challenges) - 1:
+                next_challenge_id = numeric_challenges[current_index + 1]
         
-        # Update progress
-        update_user_progress(challenge_id, solved=True)
+        # Update progress with completed checkpoint
+        update_user_progress(
+            session.get('user_id', get_user_session_id()),
+            challenge_id,
+            'completed'
+        )
+        
         log_challenge_attempt(challenge_id, payload, success)
         
         return jsonify({
@@ -579,7 +586,11 @@ def submit_challenge(challenge_id):
         })
     
     # Update progress for failed attempt
-    update_user_progress(challenge_id, solved=False)
+    update_user_progress(
+        session.get('user_id', get_user_session_id()),
+        challenge_id,
+        'attempted'
+    )
     log_challenge_attempt(challenge_id, payload, success)
     
     return jsonify({
