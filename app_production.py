@@ -555,35 +555,36 @@ def submit_challenge(challenge_id):
     # Validate solution based on challenge type
     if re.search(challenge['solution_pattern'], payload, re.IGNORECASE):
         success = True
-        update_user_progress(session.get('user_id', get_user_session_id()), 
-                           challenge_id, 
-                           'completed')  # Use 'completed' as checkpoint
         
-        # Find next challenge
+        # Find next challenge - Convert all keys to integers for proper sorting
+        numeric_challenges = [cid for cid in CHALLENGE_LABS.keys() if isinstance(cid, int)]
         next_challenge_id = None
-        for cid in sorted(CHALLENGE_LABS.keys()):
-            if cid > challenge_id:
-                next_challenge_id = cid
-                break
+        
+        if numeric_challenges:
+            sorted_challenges = sorted(numeric_challenges)
+            current_index = sorted_challenges.index(challenge_id)
+            if current_index < len(sorted_challenges) - 1:
+                next_challenge_id = sorted_challenges[current_index + 1]
+        
+        # Update progress
+        update_user_progress(challenge_id, solved=True)
+        log_challenge_attempt(challenge_id, payload, success)
         
         return jsonify({
             'success': True,
             'points': challenge['points'],
-            'message': 'Challenge completed!',
+            'message': 'Challenge completed successfully!',
             'next_challenge': f'/challenge/{next_challenge_id}' if next_challenge_id else '/dashboard',
             'redirect': True
         })
     
     # Update progress for failed attempt
-    update_user_progress(session.get('user_id', get_user_session_id()), 
-                        challenge_id, 
-                        'attempted')
-    
+    update_user_progress(challenge_id, solved=False)
     log_challenge_attempt(challenge_id, payload, success)
     
     return jsonify({
         'success': False,
-        'message': 'Try again!',
+        'message': 'Try again! Keep experimenting with different payloads.',
         'redirect': False
     })
 

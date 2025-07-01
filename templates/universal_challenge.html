@@ -424,6 +424,20 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Submission Form -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <form id="challenge-form" action="{{ url_for('submit_challenge', challenge_id=challenge.id) }}" method="POST">
+                    <div class="input-group mb-3">
+                        <input type="text" name="payload" class="form-control form-control-lg" placeholder="Enter your payload..." required>
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-paper-plane me-2"></i>Submit Solution
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Bootstrap JS -->
@@ -611,6 +625,36 @@
             .then(handleSubmission)
             .catch(error => console.error('Error:', error));
         });
+
+        function submitChallenge(event) {
+            event.preventDefault();
+            const form = event.target;
+            const payload = form.querySelector('input[name="payload"]').value;
+            
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'payload': payload
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success && data.redirect && data.next_challenge) {
+                    window.location.href = data.next_challenge;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting the challenge.');
+            });
+        }
+
+        // Add event listener to the form
+        document.getElementById('challenge-form').addEventListener('submit', submitChallenge);
     </script>
 </body>
 </html>
