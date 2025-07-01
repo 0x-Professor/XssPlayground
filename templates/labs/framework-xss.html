@@ -1,0 +1,120 @@
+{% extends "labs/lab_base.html" %}
+
+{% block content %}
+<div class="lab-container">
+    <div class="lab-header">
+        <h1><i class="fas fa-code me-3"></i>Modern Framework XSS Lab</h1>
+        <p>Explore XSS vulnerabilities in modern JavaScript frameworks</p>
+        <div class="difficulty-badge expert">Expert Level</div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 1: React XSS</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div id="react-app"></div>
+                <div id="userInput">
+                    <textarea class="form-control" rows="3" placeholder="Enter your payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testReactXSS()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 2: Angular Template Injection</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div id="angular-app"></div>
+                <div id="userInput2">
+                    <textarea class="form-control" rows="3" placeholder="Enter your payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testAngularInjection()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 3: Vue.js XSS</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div id="vue-app"></div>
+                <div id="userInput3">
+                    <textarea class="form-control" rows="3" placeholder="Enter your payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testVueXSS()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Framework Scripts -->
+<script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@angular/core@12.0.0/bundles/core.umd.js"></script>
+<script src="https://unpkg.com/vue@3.0.0/dist/vue.global.js"></script>
+
+<script nonce="{{ nonce }}">
+// React app setup
+const ReactApp = () => {
+    const [userInput, setUserInput] = React.useState('');
+    return React.createElement('div', {
+        dangerouslySetInnerHTML: { __html: userInput }
+    });
+};
+
+// Angular app setup
+class AngularApp {
+    constructor() {
+        this.userInput = '';
+    }
+}
+
+// Vue app setup
+const VueApp = {
+    data() {
+        return {
+            userInput: ''
+        };
+    },
+    template: '<div v-html="userInput"></div>'
+};
+
+// Framework XSS verification code
+function testReactXSS() {
+    const input = document.querySelector('#userInput textarea').value;
+    ReactDOM.render(
+        React.createElement(ReactApp, { input }),
+        document.getElementById('react-app')
+    );
+    
+    // Verify React XSS
+    if (window.reactXssSuccess) {
+        verifyChallenge('framework-xss', input, 'react-xss');
+    }
+}
+
+function testAngularInjection() {
+    const input = document.querySelector('#userInput2 textarea').value;
+    const app = new AngularApp();
+    app.userInput = input;
+    
+    // Verify Angular injection
+    if (window.angularInjectionSuccess) {
+        verifyChallenge('framework-xss', input, 'angular-template-injection');
+    }
+}
+
+function testVueXSS() {
+    const input = document.querySelector('#userInput3 textarea').value;
+    const app = Vue.createApp(VueApp);
+    const vm = app.mount('#vue-app');
+    vm.userInput = input;
+    
+    // Verify Vue XSS
+    if (window.vueXssSuccess) {
+        verifyChallenge('framework-xss', input, 'vue-template-xss');
+    }
+}
+</script>
+{% endblock %}

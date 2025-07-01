@@ -1,0 +1,133 @@
+{% extends "labs/lab_base.html" %}
+
+{% block content %}
+<div class="lab-container">
+    <div class="lab-header">
+        <h1><i class="fas fa-filter me-3"></i>Advanced Filter Bypass Lab</h1>
+        <p>Master advanced filter bypass techniques and WAF evasion</p>
+        <div class="difficulty-badge expert">Expert Level</div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 1: Regex Filter Bypass</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Filter:</strong> /&lt;script|alert|onclick|onerror/i
+                </div>
+                <div id="regex-target"></div>
+                <div id="userInput">
+                    <textarea class="form-control" rows="3" placeholder="Enter your payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testRegexBypass()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 2: WAF Evasion</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>WAF Rules:</strong>
+                    <ul>
+                        <li>No script tags</li>
+                        <li>No event handlers</li>
+                        <li>No javascript: protocol</li>
+                    </ul>
+                </div>
+                <div id="waf-target"></div>
+                <div id="userInput2">
+                    <textarea class="form-control" rows="3" placeholder="Enter your payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testWafEvasion()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 3: Encoding Tricks</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>Requirements:</strong> Use at least 3 different encoding techniques
+                </div>
+                <div id="encoding-target"></div>
+                <div id="userInput3">
+                    <textarea class="form-control" rows="3" placeholder="Enter your encoded payload"></textarea>
+                    <button class="btn btn-primary mt-2" onclick="testEncodingTricks()">Test Payload</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script nonce="{{ nonce }}">
+// Filter bypass verification code
+function testRegexBypass() {
+    const input = document.querySelector('#userInput textarea').value;
+    const target = document.getElementById('regex-target');
+    
+    // Test if input matches blocked patterns
+    const blockedPattern = /<script|alert|onclick|onerror/i;
+    if (blockedPattern.test(input)) {
+        showError('Payload contains blocked patterns!');
+        return;
+    }
+    
+    target.innerHTML = input;
+    
+    // Check if XSS executed despite filter
+    if (window.bypassedRegex) {
+        verifyChallenge('filter-bypass', input, 'regex-bypass');
+    }
+}
+
+function testWafEvasion() {
+    const input = document.querySelector('#userInput2 textarea').value;
+    const target = document.getElementById('waf-target');
+    
+    // WAF rules check
+    if (/<script|on\w+|javascript:/i.test(input)) {
+        showError('WAF blocked the payload!');
+        return;
+    }
+    
+    target.innerHTML = input;
+    
+    // Check if XSS executed despite WAF
+    if (window.bypassedWaf) {
+        verifyChallenge('filter-bypass', input, 'waf-evasion');
+    }
+}
+
+function testEncodingTricks() {
+    const input = document.querySelector('#userInput3 textarea').value;
+    const target = document.getElementById('encoding-target');
+    
+    // Count different encoding techniques used
+    const encodings = countEncodingTechniques(input);
+    if (encodings < 3) {
+        showError('Use at least 3 different encoding techniques!');
+        return;
+    }
+    
+    target.innerHTML = input;
+    
+    // Check if XSS executed with encodings
+    if (window.encodingSuccess) {
+        verifyChallenge('filter-bypass', input, 'encoding-tricks');
+    }
+}
+
+function countEncodingTechniques(input) {
+    let count = 0;
+    if (/&#x[0-9a-f]+;/i.test(input)) count++; // Hex encoding
+    if (/&#\d+;/.test(input)) count++; // Decimal encoding
+    if (/%[0-9a-f]{2}/i.test(input)) count++; // URL encoding
+    if (/\\x[0-9a-f]{2}/i.test(input)) count++; // Unicode escape
+    if (/\\u[0-9a-f]{4}/i.test(input)) count++; // Unicode
+    return count;
+}
+</script>
+{% endblock %}

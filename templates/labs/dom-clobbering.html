@@ -1,0 +1,110 @@
+{% extends "labs/lab_base.html" %}
+
+{% block content %}
+<div class="lab-container">
+    <div class="lab-header">
+        <h1><i class="fas fa-bug me-3"></i>DOM Clobbering Advanced Lab</h1>
+        <p>Explore advanced DOM Clobbering techniques and property collision attacks</p>
+        <div class="difficulty-badge expert">Expert Level</div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 1: Basic DOM Clobbering</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div id="output"></div>
+                <form id="clobberingForm" onsubmit="return false;">
+                    <div class="mb-3">
+                        <label class="form-label">Enter HTML:</label>
+                        <textarea class="form-control" id="htmlInput" rows="4"></textarea>
+                    </div>
+                    <button class="btn btn-primary" onclick="testClobbering()">Test Input</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="challenge-section">
+        <h3>Challenge 2: Advanced Property Collision</h3>
+        <div class="card mb-4">
+            <div class="card-body">
+                <div id="configOutput"></div>
+                <div id="config" data-url="safe-url.com"></div>
+                <form id="propertyForm" onsubmit="return false;">
+                    <div class="mb-3">
+                        <label class="form-label">Payload:</label>
+                        <input type="text" class="form-control" id="propertyInput">
+                    </div>
+                    <button class="btn btn-primary" onclick="testPropertyCollision()">Test Collision</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Vulnerable configuration object
+window.CONFIG = {
+    apiEndpoint: 'https://api.safe-domain.com',
+    isAdmin: false
+};
+
+function testClobbering() {
+    const input = document.getElementById('htmlInput').value;
+    const output = document.getElementById('output');
+    
+    // Clear previous content
+    output.innerHTML = '';
+    
+    try {
+        // Create a new div and insert the user input
+        const container = document.createElement('div');
+        container.innerHTML = input;
+        document.body.appendChild(container);
+        
+        // Check if CONFIG object was clobbered
+        if (window.CONFIG !== undefined && window.CONFIG.isAdmin === true) {
+            ProgressTracker.saveProgress('dom-clobbering', 'basic_clobbering', 100);
+            showSuccess('Successfully clobbered the CONFIG object!');
+        }
+    } catch (error) {
+        showError('Error: ' + error.message);
+    }
+}
+
+function testPropertyCollision() {
+    const input = document.getElementById('propertyInput').value;
+    const configOutput = document.getElementById('configOutput');
+    
+    try {
+        // Create elements from user input
+        const container = document.createElement('div');
+        container.innerHTML = input;
+        document.body.appendChild(container);
+        
+        // Check if the config.url was successfully clobbered
+        const config = document.getElementById('config');
+        if (config && config.url && config.url !== 'safe-url.com') {
+            ProgressTracker.saveProgress('dom-clobbering', 'property_collision', 150);
+            showSuccess('Successfully performed property collision!');
+        }
+    } catch (error) {
+        showError('Error: ' + error.message);
+    }
+}
+
+function showSuccess(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success';
+    alert.textContent = message;
+    document.querySelector('.lab-container').prepend(alert);
+}
+
+function showError(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger';
+    alert.textContent = message;
+    document.querySelector('.lab-container').prepend(alert);
+}
+</script>
+{% endblock %}
