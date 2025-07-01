@@ -555,16 +555,36 @@ def submit_challenge(challenge_id):
     # Validate solution based on challenge type
     if re.search(challenge['solution_pattern'], payload, re.IGNORECASE):
         success = True
-        update_user_progress(challenge_id, solved=True)
-    else:
-        update_user_progress(challenge_id, solved=False)
+        update_user_progress(session.get('user_id', get_user_session_id()), 
+                           challenge_id, 
+                           'completed')  # Use 'completed' as checkpoint
+        
+        # Find next challenge
+        next_challenge_id = None
+        for cid in sorted(CHALLENGE_LABS.keys()):
+            if cid > challenge_id:
+                next_challenge_id = cid
+                break
+        
+        return jsonify({
+            'success': True,
+            'points': challenge['points'],
+            'message': 'Challenge completed!',
+            'next_challenge': f'/challenge/{next_challenge_id}' if next_challenge_id else '/dashboard',
+            'redirect': True
+        })
+    
+    # Update progress for failed attempt
+    update_user_progress(session.get('user_id', get_user_session_id()), 
+                        challenge_id, 
+                        'attempted')
     
     log_challenge_attempt(challenge_id, payload, success)
     
     return jsonify({
-        'success': success,
-        'points': challenge['points'] if success else 0,
-        'message': 'Challenge completed!' if success else 'Try again!'
+        'success': False,
+        'message': 'Try again!',
+        'redirect': False
     })
 
 @app.route('/lab/<path:lab_path>')
@@ -790,6 +810,9 @@ def verify_solution(challenge, payload, checkpoint):
 
 def update_user_progress(user_id, challenge_id, checkpoint):
     """Update user's progress for the challenge"""
+    if not user_id:
+        user_id = get_user_session_id()
+        
     if user_id not in user_progress:
         user_progress[user_id] = {'labProgress': {}}
         
@@ -798,16 +821,20 @@ def update_user_progress(user_id, challenge_id, checkpoint):
             'completed': False,
             'checkpoints': [],
             'timestamp': datetime.now().isoformat(),
-            'score': 0
+            'score': 0,
+            'attempts': 0
         }
         
     progress = user_progress[user_id]['labProgress'][challenge_id]
-    if checkpoint not in progress['checkpoints']:
-        progress['checkpoints'].append(checkpoint)
-        progress['score'] += CHALLENGE_LABS[challenge_id]['points'] // len(CHALLENGE_LABS[challenge_id]['checkpoints'])
-        
-    if len(progress['checkpoints']) == len(CHALLENGE_LABS[challenge_id]['checkpoints']):
+    progress['attempts'] += 1
+    
+    if checkpoint == 'completed':
         progress['completed'] = True
+        if 'completed' not in progress['checkpoints']:
+            progress['checkpoints'].append('completed')
+            progress['score'] = CHALLENGE_LABS[challenge_id]['points']
+    elif checkpoint not in progress['checkpoints']:
+        progress['checkpoints'].append(checkpoint)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

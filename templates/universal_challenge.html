@@ -582,6 +582,35 @@
             }
             return originalAlert.call(this, message);
         };
+
+        function handleSubmission(response) {
+            if (response.success) {
+                alert(response.message);
+                if (response.redirect && response.next_challenge) {
+                    window.location.href = response.next_challenge;
+                }
+            } else {
+                alert(response.message);
+            }
+        }
+
+        document.getElementById('challenge-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const payload = document.getElementById('payload-input').value;
+            
+            fetch(window.location.pathname + '/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'payload': payload
+                })
+            })
+            .then(response => response.json())
+            .then(handleSubmission)
+            .catch(error => console.error('Error:', error));
+        });
     </script>
 </body>
 </html>
